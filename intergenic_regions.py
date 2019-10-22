@@ -153,8 +153,8 @@ if __name__ == '__main__':
     out = 'import genome file took, %.3f' % (Genome_sequence_time
                                              - start_time)
     # populate the dictionaries
-    gene_to_next_gene, gene_to_previous_gene, \
-         coordinate_dict = index_gene_scaffold_coordinates(coordinate_file)
+    gene_to_next_gene, gene_to_previous_gene, coordinate_dict, \
+            gene_list = index_gene_scaffold_coordinates(coordinate_file)
 
 
     gene_to_next_gene, gene_to_previous_gene, \
