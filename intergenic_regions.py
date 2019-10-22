@@ -24,7 +24,8 @@ from optparse import OptionParser
 from intergenic_regions_modules.tools import sys_exit,\
       check_gff, index_gene_scaffold_coordinates, \
       assign_vals_to_list, slice_up_scaff, \
-      get_len_upstream
+      get_len_upstream, get_coordinate_of_interest, \
+      write_out_to_file
 
 
 
@@ -156,10 +157,6 @@ if __name__ == '__main__':
     gene_to_next_gene, gene_to_previous_gene, coordinate_dict, \
             gene_list = index_gene_scaffold_coordinates(coordinate_file)
 
-
-    gene_to_next_gene, gene_to_previous_gene, \
-       coordinate_dict, \
-       gene_list = index_gene_scaffold_coordinates(coordinate_file)
     logger.info(out)
     for gene in gene_list:
         # now we need to extract the genic regions, not going into other genes
