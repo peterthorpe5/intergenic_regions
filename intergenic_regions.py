@@ -110,7 +110,7 @@ parser.add_option("-o", "--output",
 coordinate_file = options.coordinate_file
 genome_sequence = options.genome_sequence
 upstream = int(options.upstream) + 1
-genes_file = options.genes_file
+#genes_file = options.genes_file
 outfile = options.out_file
 min_len = options.min_len
 min_len = int(min_len) + 1
