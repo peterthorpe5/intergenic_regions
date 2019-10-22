@@ -112,11 +112,13 @@ coordinate_file = options.coordinate_file
 genome_sequence = options.genome_sequence
 upstream = int(options.upstream) + 1
 #genes_file = options.genes_file
-outfile = open(options.out_file, "w")
 min_len = options.min_len
 min_len = int(min_len) + 1
 description = "YES"
 logfile = outfile.split(".fa")[0] + "WARNINGS.log"
+
+outfile = open(options.out_file, "w")
+
 
 # Run as script
 if __name__ == '__main__':
