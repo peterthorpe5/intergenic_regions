@@ -115,6 +115,7 @@ upstream = int(options.upstream) + 1
 outfile = options.out_file
 min_len = options.min_len
 min_len = int(min_len) + 1
+description = "YES"
 logfile = outfile.split(".fa")[0] + "WARNINGS.log"
 
 # Run as script
