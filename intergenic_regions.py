@@ -138,7 +138,7 @@ if __name__ == '__main__':
         logger.error("Could not open %s for logging" %
                      logfile)
         sys.exit(1)
-    file_list = [coordinate_file, genome_sequence, genes_file]
+    file_list = [coordinate_file, genome_sequence] #genes_file]
     for user_file in file_list:
         if not os.path.isfile(user_file):
            print("file not found: %s" % user_file)
