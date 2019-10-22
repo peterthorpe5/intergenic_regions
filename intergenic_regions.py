@@ -176,7 +176,8 @@ if __name__ == '__main__':
             logger.warning(out)
         gene_coordinates = coordinate_dict[gene]
         # yes calling this again ..
-        scaff, start, stop, direction, gene assign_vals_to_list(gene_coordinates)
+        scaff, start, stop, direction, \
+               gene = assign_vals_to_list(gene_coordinates)
         Genome_seq_record = Genome_sequence[scaff]
         length_of_contig = len(Genome_seq_record.seq)
         # slice up the scaffold.
