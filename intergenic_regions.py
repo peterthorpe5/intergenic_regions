@@ -171,18 +171,21 @@ if __name__ == '__main__':
                                                  gene_to_next_gene,
                                                  gene_to_previous_gene,
                                                  coordinate_dict)
-        if final_start == "NA":
-            out = "upstream regions for gene %s falls off start of scaff" % gene
-            logger.warning(out)
-            # continue # do we want to exclude these?
-        if final_stop == "NA":
-            out = "upstream regions for gene %s falls off END of scaff" % gene
-            logger.warning(out)
+
             # continue # do we want to exclude these?
         gene_coordinates = coordinate_dict[gene]
         # yes calling this again ..
         scaff, start, stop, direction, \
                gene = assign_vals_to_list(gene_coordinates)
+        if final_start == "NA":
+            out = "upstream  for gene %s falls off start of scaff %s" % (gene,
+                                                                         scaff)
+            logger.warning(out)
+            # continue # do we want to exclude these?
+        if final_stop == "NA":
+            out = "upstream for gene %s falls off END of scaff %s" % (gene,
+                                                                      scaff)
+            logger.warning(out)
         Genome_seq_record = Genome_sequence[scaff]
         length_of_contig = len(Genome_seq_record.seq)
         # slice up the scaffold.
