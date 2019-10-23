@@ -188,15 +188,22 @@ if __name__ == '__main__':
         length_of_contig = len(Genome_seq_record.seq)
         # slice up the scaffold.
         # reverse complement for negative
-
+        # this function gets the entire intergenic regions, regardless of
+        # the desired length. 
         intergenic_region = slice_up_scaff(Genome_seq_record.seq,
                                            final_start,
                                            final_stop,
-                                           direction)
+                                           direction,
+                                           upstream)
+        # this function then get the desired upstream chunk
         upstream_ROI = get_len_upstream(intergenic_region,
-                                        upstream)
+                                        upstream,
+                                        direction)
         if description.upper() == "YES":
-            info = "Scaff: %s | start-stop: %s:%s" %(scaff, final_start, final_stop)
+            info = "Scaff: %s | start-stop: %s:%s %s coding direction" %(scaff,
+                                                                         final_start,
+                                                                         final_stop,
+                                                                         direction)
         if len(upstream_ROI) >= min_len:
             write_out_to_file(outfile,
                               gene,

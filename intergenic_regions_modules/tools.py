@@ -120,9 +120,9 @@ def slice_up_scaff(Genome_seq_record_seq,
    if negative:
    reverse complement #
    seq{start:stop]"""
-   if final_start == "NA": # this is stat of scaff:
+   if final_start == "NA": # this is start of the scaff:
       final_start = 1
-   if final_stop == "NA": # this is end of scaff:
+   if final_stop == "NA": # this is end of the scaff:
       final_stop = len(Genome_seq_record_seq) -1
    intergenic_region = Genome_seq_record_seq[int(final_start):int(final_stop)]
    if direction == "-":
@@ -130,9 +130,17 @@ def slice_up_scaff(Genome_seq_record_seq,
    return intergenic_region
 
 
-def get_len_upstream(intergenic_region, upstream):
+def get_len_upstream(intergenic_region, upstream, direction):
    """function to obtain the len of the intergenic region of interets"""
-   return intergenic_region[:upstream]
+   ROI_len = len(intergenic_region)
+   # the negtive stand has already been reverse complemtned,
+   # so we can treat both strand the same here. 
+   if ROI_len > upstream:
+      return intergenic_region[(ROI_len - upstream):]
+   else:
+      return intergenic_region
+
+
 
 def write_out_to_file(outfile, gene, upstream,
                       upstream_ROI, info):

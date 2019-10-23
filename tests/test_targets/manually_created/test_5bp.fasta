@@ -1,0 +1,20 @@
+>GPLIN_000000100	5bp upstream	Scaff: pathogens_Gpal_scaffold_1 | start-stop: NA:5
+TTTT
+>GPLIN_000000200	5bp upstream	Scaff: pathogens_Gpal_scaffold_1 | start-stop: 10:20
+GTTTT
+>GPLIN_000000300	5bp upstream	Scaff: pathogens_Gpal_scaffold_1 | start-stop: 50:55
+AAAAA
+>GPLIN_000000400	5bp upstream	Scaff: pathogens_Gpal_scaffold_1 | start-stop: 70:100
+ACTAG
+>GPLIN_000000500	5bp upstream	Scaff: pathogens_Gpal_scaffold_1 | start-stop: 70:100
+GTCTC
+>GPLIN_000020100	5bp upstream	Scaff: pathogens_Gpal_scaffold_2 | start-stop: NA:5
+TTTT
+>GPLIN_000020200	5bp upstream	Scaff: pathogens_Gpal_scaffold_2 | start-stop: 10:20
+GTTTT
+>GPLIN_000030300	5bp upstream	Scaff: pathogens_Gpal_scaffold_3 | start-stop: 50:55
+AAAAA
+>GPLIN_000030400	5bp upstream	Scaff: pathogens_Gpal_scaffold_3 | start-stop: 70:100
+CTAGT
+>GPLIN_000030500	5bp upstream	Scaff: pathogens_Gpal_scaffold_3 | start-stop: 70:100
+GTCTC
