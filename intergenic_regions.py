@@ -114,8 +114,7 @@ coordinate_file = options.coordinate_file
 genome_sequence = options.genome_sequence
 upstream = int(options.upstream)
 #genes_file = options.genes_file
-min_len = options.min_len
-min_len = int(min_len) + 1
+min_len = int(options.min_len) + 1
 description = "YES"
 logfile = options.out_file.split(".fa")[0] + "WARNINGS.log"
 
@@ -178,8 +177,8 @@ if __name__ == '__main__':
         scaff, start, stop, direction, \
                gene = assign_vals_to_list(gene_coordinates)
         if final_start == "NA":
-            out = "upstream  for gene %s falls off start of scaff %s" % (gene,
-                                                                         scaff)
+            out = "upstream for gene %s falls off start of scaff %s" % (gene,
+                                                                        scaff)
             logger.warning(out)
             # continue # do we want to exclude these?
         if final_stop == "NA":
@@ -199,11 +198,14 @@ if __name__ == '__main__':
                                         upstream)
         if description.upper() == "YES":
             info = "%s_%s:%s" %(scaff, final_start, final_stop)
-        write_out_to_file(outfile,
-                          gene,
-                          upstream,
-                          upstream_ROI,
-                          info)
+        if len(upstream_ROI) >= min_len:
+            write_out_to_file(outfile,
+                              gene,
+                              upstream,
+                              upstream_ROI,
+                              info)
+        else:
+            logger.warn
 
 
     logger.info('that took, %.1f' % (end_time - start_time))
