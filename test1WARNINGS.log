@@ -1,7 +1,7 @@
 INFO: sys.version_info(major=3, minor=7, micro=2, releaselevel='final', serial=0)
-INFO: Command-line: intergenic_regions.py -g tests\inputs\genome.fasta -u 50 -c tests\inputs\tests_gene_indexing.txt -m 10 -o tests\test_out\test_50bp_min_len10.fasta
-INFO: Starting testing: Wed Oct 23 14:11:11 2019
+INFO: Command-line: intergenic_regions.py -g .\tests\inputs\genome.fasta -c .\tests\inputs\tests_gene_indexing.txt -u 5 -o test1.fasta
+INFO: Starting testing: Wed Oct 23 15:55:04 2019
 INFO: indexing genome
-INFO: import genome file took, 0.005
+INFO: import genome file took, 0.011
 WARNING: upstream for gene GPLIN_000000100 falls off start of scaff pathogens_Gpal_scaffold_1
 WARNING: upstream for gene GPLIN_000020100 falls off start of scaff pathogens_Gpal_scaffold_2
