@@ -28,7 +28,7 @@ def setup_outdir():
 
 setup_outdir()
 
-def test_complete_script_notravis_u_5bp():
+def test_run_u_5bp():
     """complete script runs 5 bp upstream"""
     command = " ".join(["python",
                         "intergenic_regions.py",
@@ -47,7 +47,7 @@ def test_complete_script_notravis_u_5bp():
                           stderr=subprocess.PIPE)
 
 
-def test_complete_script_notravis_u_50bp():
+def test_complete_run_u_50bp():
     """complete script runs 50 bp upstream"""
     command = " ".join(["python",
                         "intergenic_regions.py",
@@ -66,7 +66,7 @@ def test_complete_script_notravis_u_50bp():
                           stderr=subprocess.PIPE)
 
 
-def test_complete_script_notravis_u_500bp():
+def test_complete_run_u_500bp():
     """complete script runs 500 bp upstream"""
     command = " ".join(["python",
                         "intergenic_regions.py",

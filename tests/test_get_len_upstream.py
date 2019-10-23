@@ -12,30 +12,87 @@ from Bio.Seq import Seq
 from Bio import SeqIO
 
 # INPUT DATA LOCATION
-INPUT = os.path.join("tests", "inputs", "genome.fasta")
+INPUT = os.path.join("tests", "inputs",
+                     "intergenic_test_regions.fasta")
 
 Genome_sequence = SeqIO.index(INPUT, "fasta")
-Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_1"]
+
 
 
 def test_intergenic_region5():
     "test intergenic_region 5 "
+    Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_1"]
     intergenic_region = get_len_upstream(Genome_seq_record.seq,
-                                         5)
+                                         5, "+")
     assert_equal(intergenic_region,
-                 "TTTTT")
+                 "GTGAG")
 
 def test_intergenic_region4():
     "test intergenic_region 4 "
+    Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_1"]
     intergenic_region = get_len_upstream(Genome_seq_record.seq,
-                                         4)
+                                         4, "+")
     assert_equal(intergenic_region,
-                 "TTTT")
+                 "TGAG")
 
 def test_intergenic_region3():
     "test intergenic_region 3 "
+    Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_1"]
     intergenic_region = get_len_upstream(Genome_seq_record.seq,
-                                         3)
+                                         3, "+")
     assert_equal(intergenic_region,
-                 "TTT")
+                 "GAG")
+    
+###############################################################
+# - ve coded test
 
+def test_negative_region3():
+    "test Rev intergenic_region 3 "
+    Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_2"]
+    intergenic_region = get_len_upstream(Genome_seq_record.seq,
+                                         3, "-")
+    # this has already been reverse complemented, so we want the
+    # seq at the "end" of the ROI. 
+    assert_equal(intergenic_region,
+                 "NNN")
+
+
+def test_negative_region3_short_seq():
+    "test Rev intergenic_9a "
+    Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_3"]
+    intergenic_region = get_len_upstream(Genome_seq_record.seq,
+                                         8, "-")
+    # this has already been reverse complemented, so we want the
+    # seq at the "end" of the ROI.
+    assert_equal(intergenic_region,
+                 "ATGNNATG")
+
+
+def test_positive_region3_short_seq():
+    "test Rev  9b "
+    Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_3"]
+    intergenic_region = get_len_upstream(Genome_seq_record.seq,
+                                         8, "+")
+    # this has already been reverse complemented, so we want the
+    # seq at the "end" of the ROI. 
+    assert_equal(intergenic_region,
+                 "ATGNNAT")
+
+
+def test_positive_region3_short_seq():
+    "test Rev  9c "
+    Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_3"]
+    intergenic_region = get_len_upstream(Genome_seq_record.seq,
+                                         15, "+")
+ 
+    assert_equal(intergenic_region,
+                 "ATGNNATG")
+
+
+def test_positive_region3_short_seq():
+    "test Rev  9d "
+    Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_3"]
+    intergenic_region = get_len_upstream(Genome_seq_record.seq,
+                                         14, "+") 
+    assert_equal(intergenic_region,
+                 "ATGNNATG") 

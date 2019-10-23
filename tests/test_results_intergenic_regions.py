@@ -13,9 +13,9 @@ from nose.tools import nottest, assert_equal, with_setup
 DATADIR = os.path.join("tests", "inputs")
 OUTDIR = os.path.join("tests", "test_out")
 TARGETDIR = os.path.join("tests", "test_targets")
-GENOME = os.path.join("tests", "inputs", "genome.fasta")
+GENOME = os.path.join("tests", "inputs", "genome_simplified.fasta")
 COORD = os.path.join("tests", "inputs",
-                     "tests_gene_indexing.txt")
+                     "tests_gene_indexing_simplified.txt")
 
 
 def setup_outdir():
@@ -26,9 +26,9 @@ def setup_outdir():
         pass
     os.makedirs(OUTDIR, exist_ok=True)
 
-
-def test_complete_script_notravis_u_5bp():
-    """complete script runs 5 bp upstream"""
+setup_outdir()
+def test_result_u_5bp():
+    """result 5 bp upstream"""
     command = " ".join(["python",
                         "intergenic_regions.py",
                         "-g",
@@ -39,15 +39,15 @@ def test_complete_script_notravis_u_5bp():
                         COORD,
                         "-o",
                         os.path.join(OUTDIR,
-                                     "test_5bp.fasta")])
+                                     "test2_5bp.fasta")])
     print(command)
     pipe = subprocess.run(command, shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE)
 
 
-def test_complete_script_notravis_u_50bp():
-    """complete script runs 50 bp upstream"""
+def test_result_u_50bp():
+    """result 50 bp upstream"""
     command = " ".join(["python",
                         "intergenic_regions.py",
                         "-g",
@@ -58,7 +58,7 @@ def test_complete_script_notravis_u_50bp():
                         COORD,
                         "-o",
                         os.path.join(OUTDIR,
-                                     "test_50bp.fasta")])
+                                     "test2_50bp.fasta")])
     print(command)
     pipe = subprocess.run(command, shell=True,
                           stdout=subprocess.PIPE,
