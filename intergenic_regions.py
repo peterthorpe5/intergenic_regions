@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # TITLE: script to get the upstream regions of genes of interest
-# script will return upt to the gene if the full length
-# falls within that gene.
-# also, script will return reverse complemnet of negative strand coded genes.
+# script will return reverse complemnet of negative strand
+# coded genes upstream regions.
 # author: Peter Thorpe September 2018.
 # University of St Andrews
 
@@ -97,7 +96,7 @@ parser.add_option("-u", "--upstream",
 
 parser.add_option("-m", "--min_len",
                   dest="min_len",
-                  default="30",
+                  default="3",
                   help="the min length of seq to return. " +
                   "Any fragments less than this are not returned " +
                   "Default = 30")
@@ -197,7 +196,7 @@ if __name__ == '__main__':
         upstream_ROI = get_len_upstream(intergenic_region,
                                         upstream)
         if description.upper() == "YES":
-            info = "%s_%s:%s" %(scaff, final_start, final_stop)
+            info = "Scaff: %s | start-stop: %s:%s" %(scaff, final_start, final_stop)
         if len(upstream_ROI) >= min_len:
             write_out_to_file(outfile,
                               gene,

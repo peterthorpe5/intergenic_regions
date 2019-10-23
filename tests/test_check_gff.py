@@ -16,7 +16,7 @@ INPUT_gene_name = "pathogens_Gpal_scaffold_1	5	10	+	GPLIN_000000100:GO0000123"
 
 
 def test_check_gff():
-    """test_check_gffg"""
+    """test_check_gff return correct names"""
     gene_list = []
     gene, gene_list= check_gff(INPUT_ok, gene_list)
     # print(gene, gene_list)
@@ -33,7 +33,7 @@ test_check_gff()
 
 
 def test_check_alter_names():
-    """test_check_alter_names"""
+    """test_check_alter_names to correct names"""
     gene_list = []
     gene, gene_list= check_gff(INPUT_ok, gene_list)
     # print(gene, gene_list)

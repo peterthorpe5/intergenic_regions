@@ -18,21 +18,21 @@ Genome_sequence = SeqIO.index(INPUT, "fasta")
 Genome_seq_record = Genome_sequence["pathogens_Gpal_scaffold_1"]
 
 
-def test_intergenic_region():
+def test_intergenic_region5():
     "test intergenic_region 5 "
     intergenic_region = get_len_upstream(Genome_seq_record.seq,
                                          5)
     assert_equal(intergenic_region,
                  "TTTTT")
 
-def test_intergenic_region():
+def test_intergenic_region4():
     "test intergenic_region 4 "
     intergenic_region = get_len_upstream(Genome_seq_record.seq,
                                          4)
     assert_equal(intergenic_region,
                  "TTTT")
 
-def test_intergenic_region():
+def test_intergenic_region3():
     "test intergenic_region 3 "
     intergenic_region = get_len_upstream(Genome_seq_record.seq,
                                          3)

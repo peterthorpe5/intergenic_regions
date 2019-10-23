@@ -45,8 +45,8 @@ def test_get_coordinate_of_interest_negative():
     assert_equal(direction, "+")
 
 
-def test_get_coordinate_of_interest_negative():
-    """test_get_coordinate_of_interest start of scaffold"""
+def test_get_coordinate_of_interest_negative2():
+    """test_get_coordin_of_interest start of scaffold"""
     gene = 'GPLIN_000000300' #- coding
     start, stop, direction = get_coordinate_of_interest(gene,
                                              gene_to_next_gene,
@@ -59,7 +59,7 @@ def test_get_coordinate_of_interest_negative():
 
 
 def test_get_coordinate_of_interest_different_scaffold():
-    """test_get_coordinate_of_interest start of scaffold"""
+    """test_get_coordin_of_interest start of scaffold"""
     gene = 'GPLIN_000020100' #+ coding
     start, stop, direction = get_coordinate_of_interest(gene,
                                              gene_to_next_gene,
