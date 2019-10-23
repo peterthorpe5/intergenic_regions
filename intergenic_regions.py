@@ -193,8 +193,7 @@ if __name__ == '__main__':
         intergenic_region = slice_up_scaff(Genome_seq_record.seq,
                                            final_start,
                                            final_stop,
-                                           direction,
-                                           upstream)
+                                           direction)
         # this function then get the desired upstream chunk
         upstream_ROI = get_len_upstream(intergenic_region,
                                         upstream,
@@ -212,7 +211,4 @@ if __name__ == '__main__':
                               info)
         else:
             logger.warn
-
-
-    logger.info('that took, %.1f' % (end_time - start_time))
     outfile.close()
