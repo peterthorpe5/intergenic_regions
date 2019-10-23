@@ -112,7 +112,7 @@ parser.add_option("-o", "--output",
 (options, args) = parser.parse_args()
 coordinate_file = options.coordinate_file
 genome_sequence = options.genome_sequence
-upstream = int(options.upstream) + 1
+upstream = int(options.upstream)
 #genes_file = options.genes_file
 min_len = options.min_len
 min_len = int(min_len) + 1
@@ -204,3 +204,4 @@ if __name__ == '__main__':
 
 
     logger.info('that took, %.1f' % (end_time - start_time))
+    outfile.close()
