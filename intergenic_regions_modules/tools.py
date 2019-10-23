@@ -134,9 +134,11 @@ def get_len_upstream(intergenic_region, upstream):
    """function to obtain the len of the intergenic region of interets"""
    return intergenic_region[:upstream]
 
-def write_out_to_file(outfile, gene, upstream, upstream_ROI, info):
+def write_out_to_file(outfile, gene, upstream,
+                      upstream_ROI, info):
    """func to write out to file"""
-   data = ">%s%dbp_upstream\t%s\n%s\n" % (gene, upstream, info, upstream_ROI)
+   data = ">%s\t%dbp_upstream\t%s\n%s\n" % (gene, upstream,
+                                            info, upstream_ROI)
    outfile.write(data)
    
 

@@ -59,6 +59,8 @@ or using to other python script in this folder. See the readme:
 
 grep "gene" name.gff3 | grep -v "#" | cut -f1,4,5,7,9 > format_for_py_script.out
 
+This also needs to be sorted.
+
 
 yeilding this reulting file:
 
@@ -161,6 +163,7 @@ if __name__ == '__main__':
             gene_list = index_gene_scaffold_coordinates(coordinate_file)
 
     logger.info(out)
+    
     for gene in gene_list:
         # now we need to extract the genic regions, not going into other genes
         final_start, final_stop, \
@@ -171,9 +174,11 @@ if __name__ == '__main__':
         if final_start == "NA":
             out = "upstream regions for gene %s falls off start of scaff" % gene
             logger.warning(out)
+            # continue # do we want to exclude these?
         if final_stop == "NA":
             out = "upstream regions for gene %s falls off END of scaff" % gene
             logger.warning(out)
+            # continue # do we want to exclude these?
         gene_coordinates = coordinate_dict[gene]
         # yes calling this again ..
         scaff, start, stop, direction, \
