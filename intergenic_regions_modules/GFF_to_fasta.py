@@ -77,7 +77,7 @@ def gff_to_fasta(gff, genome_sequence, min_length,
                 info = info + " negative strand has been reverse complmented"
 
             
-            record = SeqRecord(Seq(seq_with_genic),
+            record = SeqRecord(Seq(str(seq_with_genic)),
                    id=gene_info, name="",
                    description=info)
             SeqIO.write(record, f_out, "fasta")
