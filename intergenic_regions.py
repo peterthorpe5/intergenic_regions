@@ -233,7 +233,7 @@ if __name__ == '__main__':
     if user_defined_genic != 0:
         outfile = options.out_file.split(".")[0] + "_upstream_" + \
                   str(upstream)+ "_" + str(user_defined_genic) + \
-                  "bp_genic.gff"
+                  "bp_genic.fasta"
         # note Genome_sequence is already indexed
         gff_to_fasta(name_gff, Genome_sequence, min_len, 
                      outfile, upstream,
