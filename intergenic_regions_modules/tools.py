@@ -170,7 +170,7 @@ def write_out_gff(outfile, scaff, final_start,
                         "intergenic",
                         str(final_start),
                         str(final_stop),
-                        "%sbp_upstream_of_gene" % str(upstream),
+                        ".",
                         direction,
                         ".",
                         gene + "\n"])

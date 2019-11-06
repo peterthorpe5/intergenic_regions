@@ -44,7 +44,7 @@ def split_line(line):
             direction, frame, gene_info
 
 
-def gff_to_fasta(gff, genome_sequence, min_length,
+def gff_to_fasta(gff, Genome_sequence, min_length,
                  outfile, upstream, user_defined_genic,
                  NNN=False):
     """take in gff file. Gets the seq defined by the gff coords.
@@ -55,7 +55,8 @@ def gff_to_fasta(gff, genome_sequence, min_length,
     """
     min_length = int(min_length)
     f_out = open(outfile, "w")
-    Genome_sequence = SeqIO.index(genome_sequence, "fasta")
+    # this is already indexed
+    # Genome_sequence = SeqIO.index(genome_sequence, "fasta")
 
     with open(gff, "r") as f_handle:
         for line in f_handle:
@@ -75,7 +76,13 @@ def gff_to_fasta(gff, genome_sequence, min_length,
                 seq_with_genic = reverse_complement(seq_record.seq
                                                     [(start - user_defined_genic):stop])
                 info = info + " negative strand has been reverse complmented"
-
+            ROI_len = len(seq_with_genic)
+            # the negtive stand has already been reverse complemtned,
+            # so we can treat both strand the same here.
+            # this is some logic to make sure we dont return tooo much seq
+            # only a chunk of size of interest.
+            if ROI_len > upstream:
+               seq_with_genic = seq_with_genic[(ROI_len - upstream):]
             
             record = SeqRecord(Seq(str(seq_with_genic)),
                    id=gene_info, name="",
