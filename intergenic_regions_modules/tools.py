@@ -154,7 +154,8 @@ def write_out_to_file(outfile, gene, upstream,
 
 
 def write_out_gff(outfile, scaff, final_start,
-                  final_stop, direction, gene):
+                  final_stop, direction, gene,
+                  upstream):
    """func to write out the coordinate to a gff file. This is so
    another script can be used to return the genic region if required.
    I didnt want to alter this script to do so as I would have to
