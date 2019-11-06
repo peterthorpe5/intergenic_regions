@@ -40,7 +40,10 @@ Options:
                         the amount of nucleotide upstream of the gene start,
                         taking into account gene directions, to return in the
                         outfile by default this will not return sequences of
-                        min_lenbp or less.
+                        min_lenbp or less
+  -z USER_DEFINED_GENIC, --user_defined_genic=USER_DEFINED_GENIC
+                        the number of nucleotides from within the gene to
+                        return, default is 0
   -m MIN_LEN, --min_len=MIN_LEN
                         the min length of seq to return. Any fragments less
                         than this are not returned Default = 30
@@ -85,17 +88,6 @@ scaffold	start	stop	strand(+/-)	ID=gene_number
 GROS_00001	2195	3076	-	ID=GROS_g00002
 GROS_00001	8583	10515	+	ID=GROS_g00005.....
 
-To get all the genes in the file do (-f), or use a custom list of genes of interest:
 
-``cut -f5 format_for_py_script.out (generated above) > all_gene_names.out``
-
-This is an example I ran for G. pallida:
-========================================
-
-python get_upstream_regions.py -c format_for_py_script.out -g Gpal.v1.0.fas -f all_gene_names.out -u 225 -z -125 -o Gp.all_gene_names.out_225up_125genic.fasta > warning_all_gene_names.out_225up_125genic.out
-
-This got (-u 225) 225 bp upstream and (-z 125) 125bp into the current gene for all the
-genes in (-f) all_gene_names.out. By default -z is zero. So you dont need to specify this,
-unless you specifically want a piece of the current gene being searched for.
 
 
