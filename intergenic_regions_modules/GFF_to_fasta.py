@@ -68,11 +68,10 @@ def gff_to_fasta(gff, genome_database, min_length,
             if direction == "-":
                 seq_with_genic = reverse_complement(seq_record.seq
                                                     [(start - user_defined_genic):stop])
-            info = "Scaff: %s | start-stop: %s:%s %s coding direction  %d bp genic" %(scaff,
-                                                                         final_start,
-                                                                         final_stop,
-                                                                         direction,
-                                                                        user_defined_genic)
+            part = "Scaff: %s | start-stop: %s:%s " % (scaff, start, stop)
+            info =  "%s %s coding direction  %d bp genic" %(part,
+                                                            direction,
+                                                            user_defined_genic)
             
             record = SeqRecord(Seq(seq_with_genic),
                    id=gene_info, name="",
