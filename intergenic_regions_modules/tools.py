@@ -148,6 +148,29 @@ def write_out_to_file(outfile, gene, upstream,
    data = ">%s\t%dbp upstream\t%s\n%s\n" % (gene, upstream,
                                             info, upstream_ROI)
    outfile.write(data)
+
+
+
+def write_out_gff(name_gff, scaff, final_start,
+                  final_stop, direction, gene):
+   """func to write out the coordinate to a gff file. This is so
+   another script can be used to return the genic region if required.
+   I didnt want to alter this script to do so as I would have to
+   rewrite testsscripts"""
+   outfmt  = "\t".join([scaff,
+                        "intergenic_regions",
+                        "intergenic",
+                        final_start,
+                        final_stop,
+                        ".",
+                        direction,
+                        ".",
+                        gene + "\n"])
+   outfile.write("#GFF file from intergenic regions.\n")
+   outfile.write(outfmt)
+
+
+   
    
 
 

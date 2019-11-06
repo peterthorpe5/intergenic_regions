@@ -42,7 +42,7 @@ $ python get_upstream_regions.py --coordinates
         coordinate_file.fasta -g genome_sequence.fasta
         -upstream <int> number of nucleotides upstream of strat of gene to return
         e.g.  -u 1000
-   
+
         -m min length of seq to return
         -o outfile_name
 
@@ -99,7 +99,7 @@ parser.add_option("-m", "--min_len",
                   default="3",
                   help="the min length of seq to return. " +
                   "Any fragments less than this are not returned " +
-                  "Default = 30")
+                  "Default = 3")
 
 parser.add_option("-o", "--output",
                   dest="out_file",
@@ -161,7 +161,10 @@ if __name__ == '__main__':
             gene_list = index_gene_scaffold_coordinates(coordinate_file)
 
     logger.info(out)
-    
+    # open the gff outfile
+    name_gff = options.out_file.split(".")[0] + "upstream_" + str(upstream)+ ".gff"
+    gff_outfile = open(name_gff, "w")
+
     for gene in gene_list:
         # now we need to extract the genic regions, not going into other genes
         final_start, final_stop, \
@@ -170,7 +173,7 @@ if __name__ == '__main__':
                                                  gene_to_previous_gene,
                                                  coordinate_dict)
 
-            # continue # do we want to exclude these?
+        # continue # do we want to exclude these?
         gene_coordinates = coordinate_dict[gene]
         # yes calling this again ..
         scaff, start, stop, direction, \
@@ -189,7 +192,7 @@ if __name__ == '__main__':
         # slice up the scaffold.
         # reverse complement for negative
         # this function gets the entire intergenic regions, regardless of
-        # the desired length. 
+        # the desired length.
         intergenic_region = slice_up_scaff(Genome_seq_record.seq,
                                            final_start,
                                            final_stop,
@@ -211,4 +214,8 @@ if __name__ == '__main__':
                               info)
         else:
             logger.warn
+
+        write_out_gff(gff_outfile, scaff, final_start,
+                      final_stop, direction, gene)
     outfile.close()
+    gff_outfile.close()
