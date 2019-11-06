@@ -162,7 +162,7 @@ if __name__ == '__main__':
 
     logger.info(out)
     # open the gff outfile
-    name_gff = options.out_file.split(".")[0] + "upstream_" + str(upstream)+ ".gff"
+    name_gff = options.out_file.split(".")[0] + "_upstream_" + str(upstream)+ "bp.gff"
     gff_outfile = open(name_gff, "w")
 
     for gene in gene_list:
