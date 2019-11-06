@@ -227,14 +227,16 @@ if __name__ == '__main__':
         write_out_gff(gff_outfile, scaff, final_start,
                       final_stop, direction, gene,
                       upstream)
+    logger.info("gff made, this contains all intergenic regions")
     outfile.close()
     gff_outfile.close()
     user_defined_genic = int(user_defined_genic)
     if user_defined_genic != 0:
         outfile = options.out_file.split(".")[0] + "_upstream_" + \
                   str(upstream)+ "_" + str(user_defined_genic) + \
-                  "bp_genic.fasta"
+                  "_bp_genic.fasta"
         # note Genome_sequence is already indexed
+        logger.info("making a fasta with genic regions")
         gff_to_fasta(name_gff, Genome_sequence, min_len, 
                      outfile, upstream,
                      user_defined_genic, NNN=False)
