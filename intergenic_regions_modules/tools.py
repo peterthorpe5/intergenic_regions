@@ -103,13 +103,14 @@ def get_coordinate_of_interest(gene, gene_to_next_gene,
       # we need to start coord in the next
       # and the end cood from our gene
       if next_gene != "NA":
-         next_gene_coordinates = coordinate_dict[next_gene]
-         nextscaff, nextstart, nextstop, nextdirection, \
-                    nextgene = assign_vals_to_list(next_gene_coordinates)
-         if nextscaff == scaff:
-            return stop, nextstart, direction
-         if nextscaff == "end_of_file":
-            return stop, "NA" , "+"
+         if next_gene in coordinate_dict:
+            next_gene_coordinates = coordinate_dict[next_gene]
+            nextscaff, nextstart, nextstop, nextdirection, \
+                       nextgene = assign_vals_to_list(next_gene_coordinates)
+            if nextscaff == scaff:
+               return stop, nextstart, direction
+            if nextscaff == "end_of_file":
+               return stop, "NA" , "+"
       return stop, "NA", direction
 
 

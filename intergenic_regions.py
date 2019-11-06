@@ -235,7 +235,7 @@ if __name__ == '__main__':
                   str(upstream)+ "_" + str(user_defined_genic) + \
                   "bp_genic.gff"
         # note Genome_sequence is already indexed
-        gff_to_fasta(gff_outfile, Genome_sequence, min_length, 
+        gff_to_fasta(gff_outfile, Genome_sequence, min_len, 
                      outfile, upstream,
                      user_defined_genic, NNN=False)
         outfile.close()
