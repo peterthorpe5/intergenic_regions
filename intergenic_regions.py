@@ -26,8 +26,7 @@ from intergenic_regions_modules.tools import sys_exit,\
       get_len_upstream, get_coordinate_of_interest, \
       write_out_to_file, write_out_gff
 
-
-
+from intergenic_regions_modules.GFF_to_fasta import gff_to_fasta
 
 ##########################
 
@@ -101,6 +100,12 @@ parser.add_option("-m", "--min_len",
                   "Any fragments less than this are not returned " +
                   "Default = 3")
 
+parser.add_option("-z", "--user_defined_genic",
+                  dest="user_defined_genic",
+                  default=0,
+                  help="the number of nucleotides from within the " +
+                  "gene to return, default is 0")
+
 parser.add_option("-o", "--output",
                   dest="out_file",
                   default="upstream_of_genes.fasta",
@@ -114,6 +119,7 @@ genome_sequence = options.genome_sequence
 upstream = int(options.upstream)
 #genes_file = options.genes_file
 min_len = int(options.min_len) + 1
+user_defined_genic = int(options.user_defined_genic)
 description = "YES"
 logfile = options.out_file.split(".fa")[0] + "WARNINGS.log"
 
@@ -219,6 +225,18 @@ if __name__ == '__main__':
             logger.warn
 
         write_out_gff(gff_outfile, scaff, final_start,
-                      final_stop, direction, gene, upstream)
+                      final_stop, direction, gene,
+                      upstream)
     outfile.close()
     gff_outfile.close()
+    user_defined_genic = int(user_defined_genic)
+    if user_defined_genic != 0:
+        outfile = options.out_file.split(".")[0] + "_upstream_" + \
+                  str(upstream)+ "_" + str(user_defined_genic) + \
+                  "bp_genic.gff"
+        # note Genome_sequence is already indexed
+        gff_to_fasta(gff_outfile, Genome_sequence, min_length, 
+                     outfile, upstream,
+                     user_defined_genic, NNN=False)
+        outfile.close()
+        
