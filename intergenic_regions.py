@@ -24,7 +24,7 @@ from intergenic_regions_modules.tools import sys_exit,\
       check_gff, index_gene_scaffold_coordinates, \
       assign_vals_to_list, slice_up_scaff, \
       get_len_upstream, get_coordinate_of_interest, \
-      write_out_to_file
+      write_out_to_file, write_out_gff
 
 
 
