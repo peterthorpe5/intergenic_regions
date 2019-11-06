@@ -44,7 +44,7 @@ def split_line(line):
             direction, frame, gene_info
 
 
-def gff_to_fasta(gff, genome_database, min_length,
+def gff_to_fasta(gff, genome_sequence, min_length,
                  outfile, upstream, user_defined_genic,
                  NNN=False):
     """take in gff file. Gets the seq defined by the gff coords.
@@ -55,6 +55,8 @@ def gff_to_fasta(gff, genome_database, min_length,
     """
     min_length = int(min_length)
     f_out = open(outfile, "w")
+    Genome_sequence = SeqIO.index(genome_sequence, "fasta")
+
     with open(gff, "r") as f_handle:
         for line in f_handle:
             line = check_line(line)
@@ -62,16 +64,18 @@ def gff_to_fasta(gff, genome_database, min_length,
                 continue
             scaff, source, feature, start, stop, score, \
             direction, frame, gene_info = split_line(line)
-            seq_record = genome_database[scaff]
+            seq_record = Genome_sequence[scaff]
+            part = "Scaff: %s | start-stop: %s:%s " % (scaff, start, stop)
+            info =  "%s %s coding direction  %d bp genic" %(part,
+                                                            direction,
+                                                            user_defined_genic)
             if direction == "+":
                 seq_with_genic = seq_record.seq[start:(stop + user_defined_genic)]
             if direction == "-":
                 seq_with_genic = reverse_complement(seq_record.seq
                                                     [(start - user_defined_genic):stop])
-            part = "Scaff: %s | start-stop: %s:%s " % (scaff, start, stop)
-            info =  "%s %s coding direction  %d bp genic" %(part,
-                                                            direction,
-                                                            user_defined_genic)
+                info = info + " negative strand has been reverse complmented"
+
             
             record = SeqRecord(Seq(seq_with_genic),
                    id=gene_info, name="",
