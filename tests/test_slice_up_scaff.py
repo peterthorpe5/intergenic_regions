@@ -34,7 +34,8 @@ def test_slice_up_scaff():
 
 def test_slice_up_scaff():
     """run the function slice_up_scaff reverse_complment"""
-    intergenic_region = slice_up_scaff(Genome_seq_record.seq,
+    intergenic_region, final_start, \
+           final_stop = slice_up_scaff(Genome_seq_record.seq,
                                        "1",
                                        "5",
                                        "-")
@@ -43,7 +44,8 @@ def test_slice_up_scaff():
 
 def test_slice_up_scaff():
     """run the function slice_up_scaff NA start"""
-    intergenic_region = slice_up_scaff(Genome_seq_record.seq,
+    intergenic_region, final_start, \
+           final_stop = slice_up_scaff(Genome_seq_record.seq,
                                        "NA",
                                        "5",
                                        "+")
@@ -52,7 +54,8 @@ def test_slice_up_scaff():
 
 def test_slice_up_scaff():
     """run the function slice_up_scaff NA stop"""
-    intergenic_region = slice_up_scaff(Genome_seq_record.seq,
+    intergenic_region, final_start, \
+           final_stop = slice_up_scaff(Genome_seq_record.seq,
                                        "100",
                                        "NA",
                                        "+")
@@ -62,7 +65,8 @@ def test_slice_up_scaff():
 
 def test_slice_up_scaff():
     """run the function slice_up_scaff NA stop revrse complement"""
-    intergenic_region = slice_up_scaff(Genome_seq_record.seq,
+    intergenic_region, final_start, \
+           final_stop = slice_up_scaff(Genome_seq_record.seq,
                                        "100",
                                        "NA",
                                        "-")

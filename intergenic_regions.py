@@ -164,6 +164,8 @@ if __name__ == '__main__':
     # open the gff outfile
     name_gff = options.out_file.split(".")[0] + "_upstream_" + str(upstream)+ "bp.gff"
     gff_outfile = open(name_gff, "w")
+    gff_outfile.write("#GFF file from intergenic regions.\n")
+
 
     for gene in gene_list:
         # now we need to extract the genic regions, not going into other genes
@@ -193,7 +195,8 @@ if __name__ == '__main__':
         # reverse complement for negative
         # this function gets the entire intergenic regions, regardless of
         # the desired length.
-        intergenic_region = slice_up_scaff(Genome_seq_record.seq,
+        intergenic_region, final_start, \
+               final_stop = slice_up_scaff(Genome_seq_record.seq,
                                            final_start,
                                            final_stop,
                                            direction)
@@ -216,6 +219,6 @@ if __name__ == '__main__':
             logger.warn
 
         write_out_gff(gff_outfile, scaff, final_start,
-                      final_stop, direction, gene)
+                      final_stop, direction, gene, upstream)
     outfile.close()
     gff_outfile.close()

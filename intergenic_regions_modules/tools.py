@@ -54,15 +54,15 @@ def index_gene_scaffold_coordinates(coordinate_file):
             coordinate_dict[gene.rstrip()] = scaffold_cordinates
         gene = gene.rstrip()
         gene_to_previous_gene[gene] = last_gene
-
         gene_to_next_gene[last_gene] = gene
-
         last_gene = gene
     return gene_to_next_gene, gene_to_previous_gene, coordinate_dict, gene_list
 
 def assign_vals_to_list(gene_coordinates):
    """fun to assign to list. better ways to do this.. but you know.
    This is easy to read"""
+   if gene_coordinates ==  "":
+      return "end_of_file", "NA", "NA", "NA", "NA"
    scaff = gene_coordinates[0]
    start = gene_coordinates[1]
    stop = gene_coordinates[2]
@@ -108,6 +108,8 @@ def get_coordinate_of_interest(gene, gene_to_next_gene,
                     nextgene = assign_vals_to_list(next_gene_coordinates)
          if nextscaff == scaff:
             return stop, nextstart, direction
+         if nextscaff == "end_of_file":
+            return stop, "NA" , "+"
       return stop, "NA", direction
 
 
@@ -127,14 +129,14 @@ def slice_up_scaff(Genome_seq_record_seq,
    intergenic_region = Genome_seq_record_seq[int(final_start):int(final_stop)]
    if direction == "-":
       intergenic_region = intergenic_region.reverse_complement()
-   return intergenic_region
+   return intergenic_region, final_start, final_stop
 
 
 def get_len_upstream(intergenic_region, upstream, direction):
    """function to obtain the len of the intergenic region of interets"""
    ROI_len = len(intergenic_region)
    # the negtive stand has already been reverse complemtned,
-   # so we can treat both strand the same here. 
+   # so we can treat both strand the same here.
    if ROI_len > upstream:
       return intergenic_region[(ROI_len - upstream):]
    else:
@@ -157,22 +159,18 @@ def write_out_gff(outfile, scaff, final_start,
    another script can be used to return the genic region if required.
    I didnt want to alter this script to do so as I would have to
    rewrite testsscripts"""
+   if int(final_start) > int(final_stop):
+      start = final_stop
+      final_stop = final_start
+      final_start = start
    outfmt  = "\t".join([scaff,
                         "intergenic_regions",
                         "intergenic",
                         final_start,
                         final_stop,
-                        ".",
+                        "%sbp_upstream_of_gene" % str(upstream),
                         direction,
                         ".",
                         gene + "\n"])
-   outfile.write("#GFF file from intergenic regions.\n")
    outfile.write(outfmt)
-
-
-   
-   
-
-
-
 
