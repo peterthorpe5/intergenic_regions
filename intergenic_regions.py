@@ -26,6 +26,9 @@ from intergenic_regions_modules.tools import sys_exit,\
       get_len_upstream, get_coordinate_of_interest, \
       write_out_to_file, write_out_gff
 
+from intergenic_regions_modules.parse_gff import split_gene_name, \
+     get_starts_stops, parse_gff, write_out_gff_data
+
 from intergenic_regions_modules.GFF_to_fasta import gff_to_fasta
 
 ##########################
@@ -70,14 +73,13 @@ GROS_00001	8583	10515	+	ID=GROS_g00005.....
 
 parser = OptionParser(usage=usage)
 
-parser.add_option("-c", "--coordinates",
-                  dest="coordinate_file",
-                  default="format_for_py_script.out",
-                  help="NOTE: coordinate_file can generate using " +
-                  "linux command line of "
-                  "GFF file:  grep 'gene' name.gff3 | grep -v '#' | " +
-                  " cut -f1,4,5,7,9 > format_for_py_script.out ."
-                  "Default = format_for_py_script.out")
+parser.add_option("--gff",
+                  dest="gff_file",
+                  default=None,
+                  help="this is the full gff file  " +
+                  "greo for gene coord does not work "
+                  "This will get the starts and stops " +
+                  "based on the CDS field.")
 
 parser.add_option("-g", "--genome",
                   dest="genome_sequence",
@@ -114,7 +116,7 @@ parser.add_option("-o", "--output",
 
 # get the user options. TODO. arg parser instead
 (options, args) = parser.parse_args()
-coordinate_file = options.coordinate_file
+gff_file = options.gff_file
 genome_sequence = options.genome_sequence
 upstream = int(options.upstream)
 #genes_file = options.genes_file
@@ -148,7 +150,7 @@ if __name__ == '__main__':
         logger.error("Could not open %s for logging" %
                      logfile)
         sys.exit(1)
-    file_list = [coordinate_file, genome_sequence] #genes_file]
+    file_list = [gff_file, genome_sequence] #genes_file]
     for user_file in file_list:
         if not os.path.isfile(user_file):
            print("file not found: %s" % user_file)
@@ -156,6 +158,9 @@ if __name__ == '__main__':
     logger.info(sys.version_info)
     logger.info("Command-line: %s", ' '.join(sys.argv))
     logger.info("Starting testing: %s", time.asctime())
+    logger.info("converting gff file to coordinates file")
+    get_starts_stops(gff_file, "temp_starts_stops.txt")
+    coordinate_file = os.path.join("temp_starts_stops.txt")
     # index the genome with biopython
     logger.info("indexing genome")
     Genome_sequence = SeqIO.index(genome_sequence, "fasta")

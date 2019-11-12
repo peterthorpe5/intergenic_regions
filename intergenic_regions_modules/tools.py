@@ -50,7 +50,7 @@ def index_gene_scaffold_coordinates(coordinate_file):
             print ("repeated line in gff sub file")
             continue
         else:
-            scaffold_cordinates = gff_info.split("\t")[:]
+            scaffold_cordinates = gff_info.split("\t")
             coordinate_dict[gene.rstrip()] = scaffold_cordinates
         gene = gene.rstrip()
         gene_to_previous_gene[gene] = last_gene

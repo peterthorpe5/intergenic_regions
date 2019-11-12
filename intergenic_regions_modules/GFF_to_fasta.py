@@ -71,7 +71,8 @@ def gff_to_fasta(gff, Genome_sequence, min_length,
                                                             direction,
                                                             user_defined_genic)
             if direction == "+":
-                seq_with_genic = seq_record.seq[start:(stop + user_defined_genic)]
+                user_defined_gen = user_defined_genic - 1
+                seq_with_genic = seq_record.seq[start:(stop + user_defined_gen)]
             if direction == "-":
                 seq_with_genic = reverse_complement(seq_record.seq
                                                     [(start -
