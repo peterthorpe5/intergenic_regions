@@ -21,6 +21,11 @@ def split_gene_name(gene_info):
     gene_info = gene_info.replace("CDS:", "")
     gene_info = gene_info.split("Note=")[0]
     gene_info = gene_info.split(".")[0]
+    if "gene_id " in gene_info:
+        # this is to deal with gtf files
+        gene_info = gene_info.split()[1]
+        gene_info = gene_info.replace('"', '')
+        gene_info = gene_info.replace(';', '')
     return gene_info.rstrip()
 
 
