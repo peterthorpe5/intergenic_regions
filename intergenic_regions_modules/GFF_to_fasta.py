@@ -84,7 +84,7 @@ def gff_to_fasta(gff, Genome_sequence, min_length,
             # this is some logic to make sure we dont return tooo much seq
             # only a chunk of size of interest.
             if ROI_len > upstream:
-               seq_with_genic = seq_with_genic[(ROI_len - upstream):]
+               seq_with_genic = seq_with_genic[(ROI_len - (upstream + user_defined_genic)):]
             
             record = SeqRecord(Seq(str(seq_with_genic)),
                    id=gene_info, name="",
