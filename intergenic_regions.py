@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # TITLE: script to get the upstream regions of genes of interest
 # script will return reverse complemnet of negative strand
 # coded genes upstream regions.
