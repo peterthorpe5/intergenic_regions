@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # TITLE: script to get the upstream regions of genes of interest
 # script will return reverse complemnet of negative strand
 # coded genes upstream regions.
@@ -237,11 +237,11 @@ if __name__ == '__main__':
     gff_outfile.close()
     user_defined_genic = int(user_defined_genic)
     if user_defined_genic != 0:
-        outfile = options.out_file.split(".")[0] + "_upstream_" + \
+        outfile = options.out_file.split(".f")[0] + "_upstream" + \
                   str(upstream)+ "_" + str(user_defined_genic) + \
                   "_bp_genic.fasta"
         # note Genome_sequence is already indexed
-        logger.info("making a fasta with genic regions")
+        logger.info("making a fasta with genic regions %s" % outfile)
         gff_to_fasta(name_gff, Genome_sequence, min_len, 
                      outfile, upstream,
                      user_defined_genic, NNN=False)
