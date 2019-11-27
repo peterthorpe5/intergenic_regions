@@ -91,6 +91,8 @@ def gff_to_fasta(gff, Genome_sequence, min_length,
             record = SeqRecord(Seq(str(seq_with_genic)),
                    id=gene_info, name="",
                    description=info)
+            if len(seq_with_genic) > user_defined_gen:
+                continue
             SeqIO.write(record, f_out, "fasta")
                                                 
 
