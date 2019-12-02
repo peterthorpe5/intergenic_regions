@@ -200,7 +200,11 @@ if __name__ == '__main__':
             out = "upstream for gene %s falls off END of scaff %s" % (gene,
                                                                       scaff)
             logger.warning(out)
-        Genome_seq_record = Genome_sequence[scaff]
+        if scaff in Genome_sequence:
+            Genome_seq_record = Genome_sequence[scaff]
+        else:
+            warn = "could not find scaff: %s going to skip" % (scaff)
+            logger.warning(warn)
         length_of_contig = len(Genome_seq_record.seq)
         # slice up the scaffold.
         # reverse complement for negative
