@@ -243,7 +243,7 @@ if __name__ == '__main__':
     if user_defined_genic != 0:
         temp = str(upstream)+ "_" + str(user_defined_genic)
         # was having problems with this working, so this is a drity fix(?)
-        outfile = options.out_file + "_upstream" + temp + "_bp_genic.fasta"
+        outfile = options.out_file + "_upstream_" + temp + "_bp_genic.fasta"
         # note Genome_sequence is already indexed
         logger.info("making a fasta with genic regions %s" % outfile)
         gff_to_fasta(name_gff, Genome_sequence, min_len, 
