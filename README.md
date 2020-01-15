@@ -25,23 +25,29 @@ This will return (--upstream number) of nucleotides to the start of your genes(s
 
 Options:
   -h, --help            show this help message and exit
+  
   --gff=GFF_FILE        this is the full gff file  greo for gene coord does
                         not work This will get the starts and stops based on
                         the CDS field.
+                        
   -g GENOME_SEQUENCE, --genome=GENOME_SEQUENCE
                         genome_sequence.fasta - this has to be the file used
                         to generate the gene models/GFF file
+                        
   -u UPSTREAM, --upstream=UPSTREAM
                         the amount of nucleotide upstream of the gene start,
                         taking into account gene directions, to return in the
                         outfile by default this will not return sequences of
                         min_lenbp or less.
+                        
   -m MIN_LEN, --min_len=MIN_LEN
                         the min length of seq to return. Any fragments less
                         than this are not returned Default = 3
+                        
   -z USER_DEFINED_GENIC, --user_defined_genic=USER_DEFINED_GENIC
                         the number of nucleotides from within the gene to
                         return, default is 0
+                        
   -o FILE, --output=FILE
                         Output filename (fasta file)
 
