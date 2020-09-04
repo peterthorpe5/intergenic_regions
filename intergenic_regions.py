@@ -31,11 +31,21 @@ from intergenic_regions_modules.parse_gff import split_gene_name, \
 
 from intergenic_regions_modules.GFF_to_fasta import gff_to_fasta
 
-##########################
 
 if "-v" in sys.argv or "--version" in sys.argv:
     print("v0.0.5")
     sys.exit(0)
+
+if sys.version_info[:1] != (3,):
+    # e.g. sys.version_info(major=3, minor=6, micro=7,
+    # releaselevel='final', serial=0)
+    # break the program
+    print ("currently using:", sys.version_info,
+           "  version of python")
+    raise ImportError("Python 3.x is now required for this.py")
+    print ("did you activate the virtual environment?")
+    print ("this is to deal with module imports")
+    sys.exit(1)
 
 
 usage = """Use as follows:
