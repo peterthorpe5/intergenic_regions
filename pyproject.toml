@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intergenic-regions"
-version = "1.0.0"
+version = "1.1.0"
 description = "Strand-aware intergenic extraction, motif enrichment and interpretable sequence learning"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,7 +14,7 @@ dependencies = ["pyfaidx>=0.8.1,<1"]
 [project.optional-dependencies]
 motifs = ["numpy>=1.24,<3", "scipy>=1.10,<2", "matplotlib>=3.7,<4"]
 ml = ["intergenic-regions[motifs]", "scikit-learn>=1.5,<2"]
-analysis = ["intergenic-regions[ml]"]
+analysis = ["intergenic-regions[ml]", "shap>=0.47,<0.51"]
 dev = ["intergenic-regions[analysis]", "pytest>=8,<10", "pytest-cov>=5,<8", "hypothesis>=6,<7", "ruff>=0.9,<1", "mypy>=1.14,<3", "build>=1.2,<2"]
 
 [project.scripts]

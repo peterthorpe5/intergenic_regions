@@ -1,7 +1,7 @@
 # Intergenic regions
 
-**Strand-aware intergenic extraction, motif enrichment, automatic ML and
-transparent regulatory-candidate prioritisation.**
+**Strand-aware intergenic extraction, motif enrichment, automatic ML with
+SHAP explanations, genome-wide motif screening and offline visual reports.**
 
 **Project creator, original author and maintainer:**
 [Peter Thorpe (@peterthorpe5)](https://github.com/peterthorpe5).
@@ -15,6 +15,8 @@ The version 1.0.0 overhaul was developed with AI assistance from OpenAI Codex
 for implementation, testing and documentation, under Peter Thorpe's direction.
 The original Git history is retained, preserving attribution for the earlier
 package and its development.
+The version 1.1.0 SHAP and genome-screening upgrade continues this work under
+Peter Thorpe's scientific direction, with AI-assisted implementation and testing.
 
 This modern Python 3.11+ package replaces the script at master commit
 `c36293fc8f40117a8401a3e42aba255e172c914f` (4 September 2020).
@@ -26,7 +28,44 @@ and unavailable flanks receive explicit exclusion records.
 
 ## Installation
 
-From a checkout of this overhaul:
+
+### using conda:
+
+
+```bash
+mamba create -n intergenic_regions \
+  --override-channels -c conda-forge \
+  --strict-channel-priority \
+  python=3.11 pip \
+  numpy=1.26.4 scipy=1.13.1 matplotlib=3.9.2 \
+  scikit-learn=1.5.2 shap=0.48 \
+  numba=0.61.2 llvmlite=0.44.0 \
+  -y
+```
+
+```bash
+conda activate intergenic_regions
+```
+
+```bash
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install --only-binary=:all: --editable '.[dev]'
+```
+
+Then check the installation:
+
+```bash
+python -m pip check
+python -m intergenic_regions --version
+python -m pytest --cov=intergenic_regions --cov-report=term-missing
+python -m ruff check .
+python -m ruff format --check .
+python -m mypy src
+python -m build
+```
+
+
+### From a checkout of this overhaul:
 
 ```bash
 python -m venv .venv
@@ -37,8 +76,9 @@ python -m intergenic_regions --help
 
 The installed command is `intergenic-regions`. Extraction-only installation:
 `python -m pip install --editable .`. The `[analysis]` extra includes motifs,
-plots and ML; `[motifs]` and `[ml]` remain separate internally. Extraction does
-not load ML libraries. This project is not assumed to be published on PyPI.
+plots, ML and the official SHAP package; `[motifs]` and `[ml]` remain separate
+internally. Extraction does not load ML libraries. This project is not assumed
+to be published on PyPI.
 
 ## Complete gene-list analysis
 
@@ -61,8 +101,9 @@ python -m intergenic_regions pipeline \
 Open `results/my_analysis/report.html`. The unified dashboard contains result
 cards, motif and model plots, searchable/sortable tables, ranked candidates,
 uncertainty labels and links to full TSV files. Images, styles and scripts are
-embedded: the HTML works offline; download links need the companion folder.
-PNG and vector PDF plots are also supplied.
+embedded: the HTML works offline. Figure PNG/PDF downloads are embedded too;
+full TSV/BED/model links need the companion folder. PNG and vector PDF plots
+are also supplied separately.
 
 **Both `pipeline` and `enrich` automatically run ML alongside motif analysis.**
 A separate `ai` command supports reuse and experiments. `--no-ml` explicitly
@@ -71,6 +112,10 @@ If the observations/groups cannot support validation, motif results are kept
 and ML is marked `not_estimable`, with a reason. Missing ML dependencies are
 marked `unavailable`. Neither status fabricates scores. Invalid settings or
 malformed grouping files still fail.
+**SHAP runs automatically whenever the model is estimable.** `--no-shap`
+explicitly disables explanations without disabling ML. Without the SHAP plotting
+dependency, exact numerical explanations are retained and plot status explains
+how to install `[analysis]`.
 
 Accessibility, regulatory annotations and functional evidence are optional:
 
@@ -112,6 +157,9 @@ python -m intergenic_regions pipeline \
   --groups-tsv results/demo_inputs/groups.tsv \
   --folds 3 \
   --permutations 19 \
+  --scan-genome --scan-mismatches 1 --scan-max-motifs 8 \
+  --scan-intergenic-only --scan-upstream 300 --scan-downstream 300 \
+  --scan-bin-width 20 \
   --output-dir results/demo_analysis
 ```
 
@@ -192,6 +240,89 @@ rejects duplicates instead of silently modifying inputs. Optional deterministic
 greedy GC/length matching: `--match-background --background-ratio 1
 --max-gc-difference 0.1 --max-length-ratio 1.5`. All positives must receive
 controls; this is not a globally optimal assignment.
+
+## Automatic SHAP explanations and graphics
+
+The official SHAP package produces a global importance bar, beeswarm,
+sequence-by-feature heatmap, waterfall examples for the highest/lowest model
+scores, and a dependence plot for the leading displayed feature. All appear
+in the unified HTML, with PNG/PDF downloads and exact TSV values.
+
+Explanations use the **held-out fold's model and training-only background**.
+For this linear model, interventional SHAP is exact. The baseline plus all
+contributions reconstructs the model's positive-class **log-odds**, not changes
+in probability. Fold backgrounds differ; the heatmap's top trace is labelled
+as the sum of SHAP contributions.
+
+By default, a reproducible, approximately class-proportional sample of up to
+1,000 sequences is explained. `--shap-max-sequences 2000` changes that limit;
+`--shap-max-features 30` changes the leading features retained per sequence
+(supported range 1–100). Global importance includes **all** model features.
+An explicit additive `other_features` row preserves omitted contributions.
+Grey points have no feature value, including that remainder and words absent
+from a fold's vocabulary.
+
+Correlated, overlapping words affect attribution. SHAP explains the classifier,
+**not causal regulation or validated enhancer function**. It does not explain
+the separate contextual-evidence ranking. New-candidate prediction remains
+separate from held-out explanations. See [methods](docs/METHODS.md).
+
+## Screen identified motifs across the whole genome
+
+Add `--scan-genome` to `pipeline` to screen identified motifs in the same run.
+The screen is opt-in because a genome can produce millions of matches.
+Alternatively, reuse completed enrichment results:
+
+```bash
+python -m intergenic_regions scan-genome \
+  --genome genome.fasta --annotation genes.gff3 \
+  --enrichment-tsv results/my_analysis/motifs/motif_enrichment.tsv \
+  --positive-genes genes_of_interest.txt --negative-genes control_genes.txt \
+  --scan-q-value 0.05 --scan-max-motifs 20 \
+  --scan-mismatches 1 --scan-intergenic-only \
+  --scan-upstream 2000 --scan-downstream 500 --scan-bin-width 100 \
+  --output-dir results/genome_screen
+```
+
+Use `--motifs motifs.tsv` instead of `--enrichment-tsv` for supplied IUPAC,
+MEME or JASPAR motifs. No annotation is required for matching alone; it is
+required for `--scan-intergenic-only`, gene cohorts and positional heatmaps.
+Always provide the full annotation to protect all genic boundaries.
+
+| Setting | Interpretation |
+| --- | --- |
+| `--scan-q-value 0.05` | Select motifs with positive prevalence greater than negative prevalence and discovery q ≤ threshold. This is not a genome-hit p-value. |
+| `--scan-max-motifs 20` | Pattern limit; enriched motifs sort by q then ID. Supplied motifs retain file order. Selected targets are written to TSV. |
+| `--scan-motif-ids Gbox motif_2` | Restrict exact IDs, subject to discovery selection and the pattern limit. |
+| `--scan-mismatches 1` | Allow substitutions only, excluding indels. IUPAC degeneracy does not consume a mismatch. The limit must be less than every selected motif's length. |
+| `--scan-forward-only` | Search the reference strand only; otherwise both orientations. |
+| `--scan-intergenic-only` | Exclude any overlap with an annotated gene, including introns/UTRs and unknown-strand genes. |
+| `--scan-mask-lowercase` | Exclude soft-masked windows. Ambiguous genomic windows are always excluded. |
+| `--scan-max-hits 2000000` | Abort atomically if exceeded; never publish a silently truncated scan. |
+| `--scan-chunk-size 250000` | Chunk core size; overlapping tails protect cross-boundary matches. |
+
+This is **consensus/IUPAC Hamming screening**, not PWM-score scanning. PWMs
+become explicitly labelled maximum-probability `pwm_consensus` patterns;
+discovery PWM thresholds are not reproduced. Discovery q-values are provenance,
+never genome-hit significance. Overlapping sites are retained. A physical site
+matching both orientations appears once with strand `.` and its minimum mismatch
+count. `matched_sequence` contains reference-strand bases; coordinates are
+zero-based, half-open.
+
+The report adds raw-count and opportunity-normalised distance heatmaps,
+positive/control/other cohort profiles, a gene-by-motif burden heatmap, mismatch
+counts and contig counts. Signed distance connects the site's midpoint to the
+**nearest annotated 5′ gene base**: `start` on `+`, `end - 1` on `-`; upstream
+is negative in transcriptional orientation. This is a **TSS proxy**, not a
+measured TSS or proof of a motif-to-gene link. Equidistant/coincident starts
+are flagged and excluded from positional profiles; unknown-strand genes have
+no start proxy. Gene burden retains a stable representative for tied assignments.
+
+Density is sites per million eligible, unambiguous start windows of the same
+motif length, under the same scan restrictions. Zero opportunity gives NA.
+The profiles reuse discovery motifs and cohorts descriptively; they are
+**not independent enrichment tests**. Every hit retains
+`enhancer_status=unvalidated_sequence_match`.
 
 ## Evidence-aware prioritisation
 
@@ -328,5 +459,4 @@ and existing results are refused. Progress is logged to stderr and optional
 `--log-file`; summaries go to stdout as JSON. Exit codes: 0 success, 2 failed
 operation/input, 130 interrupted. A successful motif workflow may carry an
 explicitly unavailable model: inspect the model-status card and summary.
-
 

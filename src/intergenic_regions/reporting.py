@@ -377,7 +377,9 @@ def write_report(
     """
     escape = html.escape
     motif_summary = summary.get("motifs", summary)
-    ai_summary = summary.get("ai") or {}
+    ai_summary = summary.get("ai") or summary
+    shap_summary = ai_summary.get("shap") or {}
+    scan_summary = summary.get("scan") or {}
     metrics = [
         (
             "Positive regions",
@@ -422,6 +424,38 @@ def write_report(
             ),
         ),
     ]
+    if shap_summary:
+        metrics.extend(
+            [
+                ("SHAP status", shap_summary.get("status", "—")),
+                (
+                    "Sequences explained",
+                    shap_summary.get("explained_sequences", "—"),
+                ),
+            ]
+        )
+    if scan_summary:
+        if set(summary) == {"scan"}:
+            metrics = []
+        metrics.extend(
+            [
+                ("Genome scan status", scan_summary.get("status", "—")),
+                (
+                    "Screened motif consensuses",
+                    scan_summary.get("selected_motifs", "—"),
+                ),
+                ("Genome motif sites", scan_summary.get("total_sites", "—")),
+                (
+                    "Genic overlap sites",
+                    scan_summary.get("genic_overlap_sites", "—"),
+                ),
+                ("Genome bases", scan_summary.get("genome_bases", "—")),
+                (
+                    "Allowed substitutions",
+                    scan_summary.get("max_mismatches", "—"),
+                ),
+            ]
+        )
     body = [
         "<header><p class='eyebrow'>INTERGENIC REGIONS · RESULTS</p>",
         f"<h1>{escape(title)}</h1>",
@@ -460,19 +494,47 @@ def write_report(
                 f"<a href='{escape(href, quote=True)}'>{escape(label)}</a>"
             )
         body.append("</nav>")
-    body.append(
-        "<section id='figures'><h2>Patterns and predictive evidence</h2>"
-        "<div class='gallery'>"
-    )
+    body.append("<section id='figures'>")
+    previous_category = ""
     for image in images:
+        category = (
+            "SHAP · held-out model explanations"
+            if image.stem.startswith("shap_")
+            else "Genome scan · unvalidated sequence matches"
+            if image.stem.startswith("genome_")
+            else "Model performance and sequence signatures"
+            if image.stem.startswith("ai_")
+            else "Motifs and sequence balance"
+        )
+        if category != previous_category:
+            if previous_category:
+                body.append("</div>")
+            body.append(f"<h2>{escape(category)}</h2><div class='gallery'>")
+            previous_category = category
         encoded = base64.b64encode(image.read_bytes()).decode("ascii")
+        pdf = image.with_suffix(".pdf")
+        figure_links = (
+            "<div class='figure-links'>"
+            f"<a href='data:image/png;base64,{encoded}' "
+            f"download='{escape(image.name, quote=True)}'>Download PNG</a>"
+        )
+        if pdf.is_file():
+            # Embed both formats so a copied HTML remains entirely portable.
+            encoded_pdf = base64.b64encode(pdf.read_bytes()).decode("ascii")
+            figure_links += (
+                f"<a href='data:application/pdf;base64,{encoded_pdf}' "
+                f"download='{escape(pdf.name, quote=True)}'>Download PDF</a>"
+            )
+        figure_links += "</div>"
         body.append(
             f'<figure><img alt="{escape(image.stem)}" '
             f'src="data:image/png;base64,{encoded}"><figcaption>'
             f"{escape(image.stem.replace('_', ' '))}"
-            "</figcaption></figure>"
+            f"</figcaption>{figure_links}</figure>"
         )
-    body.append("</div></section>")
+    if previous_category:
+        body.append("</div>")
+    body.append("</section>")
     for table_number, (name, rows) in enumerate((tables or {}).items()):
         body.append(
             f"<section id='table-{table_number}' class='results'>"

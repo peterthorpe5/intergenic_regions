@@ -224,7 +224,14 @@ def provenance(
         A strict JSON-compatible manifest.
     """
     packages: dict[str, str] = {}
-    for name in ("pyfaidx", "numpy", "scipy", "matplotlib", "scikit-learn"):
+    for name in (
+        "pyfaidx",
+        "numpy",
+        "scipy",
+        "matplotlib",
+        "scikit-learn",
+        "shap",
+    ):
         try:
             packages[name] = version(distribution_name=name)
         except PackageNotFoundError:

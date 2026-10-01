@@ -11,6 +11,7 @@ const {values} = parseArgs({options: {
   "result-json": {type: "string"},
   "browser-executable": {type: "string"},
   "chromium-module": {type: "string"},
+  "with-shap-scan": {type: "boolean", default: false},
 }});
 assert(values.report && values.screenshot && values["result-json"],
   "Use --report, --screenshot and --result-json");
@@ -40,6 +41,32 @@ assert(values.report && values.screenshot && values["result-json"],
     assert((await page.locator("figure img").count()) >= 4);
     assert(await page.locator("figure img").evaluateAll((images) =>
       images.every((image) => image.complete && image.naturalWidth > 0)));
+    if (values["with-shap-scan"]) {
+      assert.equal(await page.locator("img[alt^='shap_']").count(), 6);
+      assert.equal(await page.locator("img[alt^='genome_']").count(), 5);
+      assert.equal(await page.locator(".figure-links a[download$='.png']").count(),
+        await page.locator("figure img").count());
+      assert.equal(await page.locator(".figure-links a[download$='.pdf']").count(),
+        await page.locator("figure img").count());
+      const pending = page.waitForEvent("download");
+      await page.locator("a[download='shap_beeswarm.pdf']").click();
+      const download = await pending;
+      assert.equal(download.suggestedFilename(), "shap_beeswarm.pdf");
+      const file = fs.readFileSync(await download.path());
+      assert.equal(file.subarray(0, 4).toString(), "%PDF");
+      const link = page.getByRole("link", {name: "Whole-genome scan report"});
+      await link.click();
+      assert.equal(await page.locator("h1").textContent(),
+        "Genome-wide motif screening");
+      assert.equal(await page.locator("figure img").count(), 5);
+      assert(await page.locator("figure img").evaluateAll((images) =>
+        images.every((image) => image.complete && image.naturalWidth > 0)));
+      await page.setViewportSize({width: 390, height: 844});
+      assert(await page.evaluate(() =>
+        document.documentElement.scrollWidth <= window.innerWidth + 1));
+      await page.setViewportSize({width: 1440, height: 1000});
+      await page.goBack();
+    }
     const search = page.locator("input[data-table]").first();
     const candidates = page.locator("#results-0 tbody tr");
     const initialRows = await candidates.count();
@@ -71,6 +98,10 @@ assert(values.report && values.screenshot && values["result-json"],
       checks: ["offline rendering", "embedded plots", "search/reset",
         "ascending/descending numerical sorting", "mobile layout",
         "no JavaScript errors", "no external requests"]};
+    if (values["with-shap-scan"]) {
+      result.checks.push("six official SHAP plots", "five genome plots",
+        "embedded PNG/PDF downloads", "PDF content", "linked scan report");
+    }
     fs.writeFileSync(values["result-json"], JSON.stringify(result, null, 2));
     process.stdout.write(JSON.stringify(result) + "\n");
   } finally {

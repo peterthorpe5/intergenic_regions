@@ -21,6 +21,7 @@ from intergenic_regions.workflows import (
     attach_evidence,
     enrichment_workflow,
     extract_workflow,
+    genome_scan_workflow,
     learning_workflow,
     pipeline_workflow,
     read_region_table,
@@ -124,6 +125,39 @@ def add_learning_options(*, parser: argparse.ArgumentParser) -> None:
         help="Fixed inverse L2 strength C; no validation-driven tuning",
     )
     parser.add_argument("--groups-tsv", type=Path)
+    parser.add_argument(
+        "--no-shap",
+        action="store_true",
+        help="Disable automatic held-out SHAP explanations and graphics",
+    )
+    parser.add_argument("--shap-max-sequences", type=int, default=1000)
+    parser.add_argument("--shap-max-features", type=int, default=20)
+
+
+def add_scan_options(*, parser: argparse.ArgumentParser) -> None:
+    """Add explicit consensus-screen and gene-start profile settings.
+
+    Args:
+        parser: Genome-screen or pipeline command parser.
+    """
+    parser.add_argument(
+        "--scan-mismatches",
+        "--max-mismatches",
+        type=int,
+        default=0,
+        help="Maximum substitutions, excluding indels",
+    )
+    parser.add_argument("--scan-q-value", type=float, default=0.05)
+    parser.add_argument("--scan-max-motifs", type=int, default=20)
+    parser.add_argument("--scan-motif-ids", nargs="+", default=[])
+    parser.add_argument("--scan-intergenic-only", action="store_true")
+    parser.add_argument("--scan-forward-only", action="store_true")
+    parser.add_argument("--scan-mask-lowercase", action="store_true")
+    parser.add_argument("--scan-chunk-size", type=int, default=250000)
+    parser.add_argument("--scan-max-hits", type=int, default=2000000)
+    parser.add_argument("--scan-upstream", type=int, default=2000)
+    parser.add_argument("--scan-downstream", type=int, default=2000)
+    parser.add_argument("--scan-bin-width", type=int, default=100)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -152,6 +186,10 @@ def build_parser() -> argparse.ArgumentParser:
         ("ai", "Learn and validate interpretable sequence signatures"),
         ("predict", "Score new candidates using an exported JSON model"),
         (
+            "scan-genome",
+            "Screen motif consensuses genome-wide with substitutions",
+        ),
+        (
             "annotate",
             "Attach optional assay/reference evidence to regions.tsv",
         ),
@@ -178,6 +216,27 @@ def build_parser() -> argparse.ArgumentParser:
     pipeline = commands["pipeline"]
     pipeline.add_argument("--positive-genes", type=Path, required=True)
     pipeline.add_argument("--negative-genes", type=Path, required=True)
+    pipeline.add_argument("--scan-genome", action="store_true")
+    add_scan_options(parser=pipeline)
+    scan = commands["scan-genome"]
+    scan.add_argument("--genome", type=Path, required=True)
+    scan.add_argument("--annotation", "--gff", type=Path)
+    scan.add_argument(
+        "--annotation-format",
+        choices=("auto", "gff3", "gtf", "tsv"),
+        default="auto",
+    )
+    sources = scan.add_mutually_exclusive_group(required=True)
+    sources.add_argument("--enrichment-tsv", type=Path)
+    sources.add_argument("--motifs", type=Path)
+    scan.add_argument(
+        "--motif-format",
+        choices=("auto", "meme", "jaspar", "iupac"),
+        default="auto",
+    )
+    scan.add_argument("--positive-genes", type=Path)
+    scan.add_argument("--negative-genes", type=Path)
+    add_scan_options(parser=scan)
     for name in ("pipeline", "enrich"):
         controls = commands[name].add_mutually_exclusive_group()
         controls.add_argument(
@@ -315,6 +374,34 @@ def learning_options(*, args: argparse.Namespace) -> dict[str, Any]:
         "permutations": args.permutations,
         "max_features": args.max_features,
         "regularisation": args.regularisation,
+        "shap": not args.no_shap,
+        "shap_max_sequences": args.shap_max_sequences,
+        "shap_max_features": args.shap_max_features,
+    }
+
+
+def scan_options(*, args: argparse.Namespace) -> dict[str, Any]:
+    """Translate genome-screen flags to selection and scan settings.
+
+    Args:
+        args: Parsed command options.
+
+    Returns:
+        Validated workflow keyword settings.
+    """
+    return {
+        "max_mismatches": args.scan_mismatches,
+        "q_threshold": args.scan_q_value,
+        "max_motifs": args.scan_max_motifs,
+        "motif_ids": args.scan_motif_ids,
+        "both_strands": not args.scan_forward_only,
+        "intergenic_only": args.scan_intergenic_only,
+        "mask_lowercase": args.scan_mask_lowercase,
+        "chunk_size": args.scan_chunk_size,
+        "max_hits": args.scan_max_hits,
+        "upstream": args.scan_upstream,
+        "downstream": args.scan_downstream,
+        "bin_width": args.scan_bin_width,
     }
 
 
@@ -379,6 +466,8 @@ def dispatch(*, args: argparse.Namespace) -> dict[str, Any]:
             group_by=args.group_by,
             matching_settings=matching,
             evidence_settings=evidence_options(args=args),
+            scan_genome=args.scan_genome,
+            scan_settings=scan_options(args=args),
         )
     if args.command == "enrich":
         return enrichment_workflow(
@@ -400,6 +489,21 @@ def dispatch(*, args: argparse.Namespace) -> dict[str, Any]:
             settings=learning_options(args=args),
             groups_path=args.groups_tsv,
             candidates_path=args.candidate_fasta,
+        )
+    if args.command == "scan-genome":
+        return genome_scan_workflow(
+            genome_path=args.genome,
+            output=output,
+            annotation_path=args.annotation,
+            annotation_format=args.annotation_format,
+            enrichment_path=args.enrichment_tsv,
+            motif_path=args.motifs,
+            positive_genes=args.positive_genes,
+            negative_genes=args.negative_genes,
+            settings={
+                "motif_format": args.motif_format,
+                **scan_options(args=args),
+            },
         )
     if args.command == "predict":
         from intergenic_regions.learning import predict_sequences

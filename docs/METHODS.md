@@ -95,6 +95,76 @@ model contains weights/scaling/schema/checksums, never executable pickle data.
 Exact training-sequence duplicates are flagged when predicting new candidates;
 near duplicates and homologues still require independent validation.
 
+## Exact held-out SHAP
+
+For a linear logit model with intercept b, weights w and training background
+mean μ, the expected logit is `b + w·μ`; feature i contributes
+`w_i × (x_i − μ_i)`. This is exact interventional SHAP, checked against
+`shap.LinearExplainer` with an independent masker. Each held-out observation
+uses its own fold's fitted classifier, vocabulary, scaling and training-only
+feature mean. Test observations and the full-data model never define that
+background. Permutation models do not generate additional SHAP output.
+
+All features enter mean-absolute global importance. A feature absent from a
+fold contributes zero and has an unavailable feature value. Importance averages
+over the explained sample; seeded sampling is approximately proportional by
+class and can affect feature ranking. Feature blocks bound sparse-to-dense
+memory. Leading local rows plus an explicit additive remainder reconstruct
+logits and held-out signature scores. Sampling limits, scope and reconstruction
+error are recorded. This sample does not imply a population estimate.
+
+Official `shap.plots` generates bar, beeswarm, heatmap, waterfall and dependence
+graphics. Heatmap sequences sort by actual held-out logits; its top trace sums
+contributions without fold-specific baselines and is labelled accordingly.
+Waterfalls show the highest/lowest predicted scores. Dependence-plot fold
+variation is not an interaction test. Grey values include the remainder and
+features absent from a fold. Units are positive-class log-odds, not probability
+changes, enrichment significance or enhancer validation.
+
+Interventional attribution treats perturbations independently despite correlated
+or overlapping words. Correlation-dependent attribution, causal effects and
+explanations of the contextual-evidence ranking are outside this method.
+Chromatin evidence remains a separate support layer. Missing official plotting
+dependencies produce an explicit status while preserving numerical SHAP and ML.
+
+## Whole-genome consensus screening
+
+Enrichment-driven selection requires positive prevalence greater than negative
+prevalence and discovery q ≤ the configured limit, ordered by q then ID and
+capped by a pattern count. Supplied motifs retain file order. Requested IDs
+further restrict selection. No eligible motif gives `no_selected_motifs` and
+empty site files, rather than invented hits.
+
+IUPAC positions accept their allowed bases without consuming substitutions.
+Hamming distance counts other substitutions; indels are excluded. Ambiguous
+genomic windows are always skipped; soft masking is optional. PWMs become
+explicit maximum-probability consensuses, so this screen does not reproduce
+their discovery scoring threshold. Discovery q-values only preserve provenance.
+No genome-hit significance is inferred from them or from mismatch counts.
+
+Both orientations are searched by default. A coordinate matching both is one
+physical site with strand `.` and minimum mismatch count. Overlapping windows
+are retained. Chunk tails cover the longest pattern; core-start ownership
+avoids boundary omissions/duplicates. Full TSV/BED sites stream to disk; an
+exceeded hit limit fails the atomic workflow. Intergenic-only filtering rejects
+any overlap with the complete gene spans, regardless of target membership,
+strand or availability of a gene-start proxy.
+
+Association uses the nearest known-strand annotated 5′ gene base: zero-based
+`start` on + and `end−1` on −. For midpoint c and proxy t, distance is `c−t`
+on + and `t−c` on −. This is a TSS proxy, not a measured TSS or a regulatory
+link. Equidistant/coincident starts select the first coordinate/ID representative,
+retain a tie flag and are excluded from positional numerators and denominators.
+Gene burden retains that representative; unknown-strand genes still block hits.
+
+Density divides hits by eligible scanned start windows of the same pattern
+length, nearest-gene cohort and distance bin, scaled by 10^6. Masking, ambiguity,
+intergenic restriction, ties and contig edges affect counts and opportunities.
+The final bin may be narrower; plots use true edges. Zero opportunity gives NA;
+raw counts are also supplied. Contig/gene burden is descriptive, not normalised
+enrichment. Discovery-selected motifs/cohorts are reused and cannot establish
+independent validation. Every hit remains `unvalidated_sequence_match`.
+
 ## Optional evidence and candidate triage
 
 BED evidence measures union overlap, preventing double counting. Missing tracks
@@ -120,8 +190,9 @@ linkage, tissue specificity or mechanism.
 - [scikit-learn grouped cross-validation](https://scikit-learn.org/stable/modules/cross_validation.html)
 - [scikit-learn permutation-test documentation](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.permutation_test_score.html)
 - [HOMER FASTA-mode documentation](https://homer.ucsd.edu/homer/microarray/fasta.html)
+- [SHAP linear explainer](https://shap.readthedocs.io/en/latest/generated/shap.LinearExplainer.html)
+- [SHAP plotting API](https://shap.readthedocs.io/en/latest/api.html#plots)
 
 Our grouped permutation procedure is described above explicitly; it extends
 within-group shuffling to equal-sized pure groups and is not presented as
 identical to scikit-learn's permutation_test_score.
-

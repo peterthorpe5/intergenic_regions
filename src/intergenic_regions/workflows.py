@@ -729,6 +729,12 @@ def analysis_report(
             metrics = list(csv.DictReader(f=stream, delimiter="\t"))
     images = sorted((motif_directory / "figures").glob("*.png"))
     images += sorted((directory / "ai" / "figures").glob("*.png"))
+    images += sorted((directory / "genome_scan" / "figures").glob("*.png"))
+    shap_rows: list[dict[str, Any]] = []
+    shap_path = directory / "ai" / "shap_importance.tsv"
+    if shap_path.is_file():
+        with shap_path.open(mode="r", encoding="utf-8", newline="") as stream:
+            shap_rows = list(csv.DictReader(f=stream, delimiter="\t"))
     links = {
         "Motif enrichment TSV": str(
             (motif_directory / "motif_enrichment.tsv").relative_to(directory)
@@ -737,6 +743,15 @@ def analysis_report(
         "Model report": "ai/report.html",
         "Run manifest": "manifest.json",
     }
+    if shap_rows:
+        links["SHAP feature importance TSV"] = "ai/shap_importance.tsv"
+        links["SHAP sequence explanations TSV"] = "ai/shap_values.tsv"
+    if (directory / "genome_scan" / "report.html").is_file():
+        links["Whole-genome scan report"] = "genome_scan/report.html"
+        links["Genome motif sites TSV"] = "genome_scan/genome_motif_sites.tsv"
+        links["Gene-start distance profiles TSV"] = (
+            "genome_scan/distance_profiles.tsv"
+        )
     write_report(
         path=directory / "report.html",
         title="Intergenic regulatory sequence analysis",
@@ -775,6 +790,7 @@ def analysis_report(
                 for row in motifs
             ],
             "Held-out model validation": metrics,
+            "Held-out SHAP feature importance": shap_rows,
             **(extra_tables or {}),
         },
         images=images,
@@ -790,6 +806,9 @@ def analysis_report(
             "do not establish the function of this extracted interval.",
             "FDR includes the full tested motif family. Inspect GC/length "
             "balance, independent groups and the composition-only baseline.",
+            "SHAP explains held-out model log-odds using each fold's training "
+            "background. Correlated words can share or redistribute "
+            "attribution; these explanations are not causal evidence.",
         ],
     )
 
@@ -831,10 +850,12 @@ def learning_outputs(
         if groups_path
         else groups
     )
+    explanations: dict[str, Any] = {}
     predictions, signatures, metrics, summary, model = fit_sequence_model(
         positive=positive,
         negative=negative,
         groups=selected_groups,
+        explanation_outputs=explanations,
         **(settings or {}),
     )
     write_tsv(
@@ -853,7 +874,6 @@ def learning_outputs(
         fields=tuple(metrics[0]),
     )
     write_json(path=directory / "model.json", data=model)
-    write_json(path=directory / "summary.json", data=summary)
     candidates: list[dict[str, Any]] = []
     if candidates_path:
         candidates = predict_sequences(
@@ -870,6 +890,36 @@ def learning_outputs(
         summary=summary,
         directory=directory / "figures",
     )
+    importance = explanations.get("importance", [])
+    if explanations:
+        from intergenic_regions.shap_reporting import plot_shap
+
+        write_tsv(
+            path=directory / "shap_values.tsv",
+            rows=explanations["rows"],
+            fields=tuple(explanations["rows"][0]),
+        )
+        write_tsv(
+            path=directory / "shap_importance.tsv",
+            rows=importance,
+            fields=tuple(importance[0]),
+        )
+        try:
+            images.extend(
+                plot_shap(
+                    rows=explanations["rows"],
+                    importance=importance,
+                    directory=directory / "figures",
+                )
+            )
+            summary["shap"]["plot_status"] = "completed"
+        except ImportError:
+            summary["shap"]["plot_status"] = "unavailable"
+            summary["shap"]["plot_reason"] = (
+                "Install intergenic-regions[analysis] for official SHAP plots"
+            )
+            LOGGER.warning(summary["shap"]["plot_reason"])
+    write_json(path=directory / "summary.json", data=summary)
     write_report(
         path=directory / "report.html",
         title="AI sequence signatures",
@@ -878,8 +928,21 @@ def learning_outputs(
             "Held-out predictions": predictions,
             "Exploratory sequence signatures": signatures,
             "New candidate scores": candidates,
+            "Held-out SHAP feature importance": importance,
         },
         images=images,
+        links={
+            "Held-out predictions TSV": "held_out_predictions.tsv",
+            "Reusable model JSON": "model.json",
+            **(
+                {
+                    "SHAP feature importance TSV": "shap_importance.tsv",
+                    "SHAP sequence explanations TSV": "shap_values.tsv",
+                }
+                if explanations
+                else {}
+            ),
+        },
         notes=[
             "Vocabulary selection, composition scaling and classifier "
             "fitting occur separately inside each validation fold. "
@@ -892,6 +955,12 @@ def learning_outputs(
             "Sequence scores measure resemblance to the supplied positive "
             "class. Chromatin overlap and user-supplied functional results "
             "are separate evidence, and do not change training labels.",
+            "Interventional SHAP contributions are additive positive-class "
+            "log-odds, not probability changes. Each held-out fold uses its "
+            "own training-only background. The displayed 'Other features' "
+            "term preserves all omitted contributions; the global bar uses "
+            "every model feature. Feature correlations affect attribution "
+            "and no explanation establishes enhancer function.",
         ],
     )
     return summary, predictions
@@ -955,6 +1024,8 @@ def pipeline_workflow(
     group_by: str = "gene",
     matching_settings: dict[str, Any] | None = None,
     evidence_settings: dict[str, Any] | None = None,
+    scan_genome: bool = False,
+    scan_settings: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run gene-list extraction, leakage filtering, enrichment and optional AI.
 
@@ -974,6 +1045,8 @@ def pipeline_workflow(
         group_by: Default AI groups: ``gene`` or ``contig``.
         matching_settings: Optional GC/length control-matching settings.
         evidence_settings: Optional experimental/reference evidence.
+        scan_genome: Screen positively enriched consensuses across the genome.
+        scan_settings: Screen selection, substitution and profile limits.
 
     Returns:
         Integrated workflow summary.
@@ -1099,7 +1172,7 @@ def pipeline_workflow(
             rows=candidate_rows,
             fields=tuple(candidate_rows[0]),
         )
-        summary = {
+        summary: dict[str, Any] = {
             "positive_regions": len(positive),
             "negative_regions": len(negative),
             "leakage_exclusions": len(audit),
@@ -1116,6 +1189,26 @@ def pipeline_workflow(
                 )
             ),
         }
+        if scan_genome:
+            from intergenic_regions.scanning import genome_scan_outputs
+
+            targets, screen_settings = scan_targets(
+                enrichment_path=stage / "motifs" / "motif_enrichment.tsv",
+                settings=scan_settings or {},
+            )
+            summary["scan"] = genome_scan_outputs(
+                directory=stage / "genome_scan",
+                genome_path=genome_path,
+                annotation_path=annotation_path,
+                annotation_format=annotation_format,
+                positive_genes=positive_genes,
+                negative_genes=negative_genes,
+                motifs=targets,
+                selection_settings=serialise_settings(
+                    settings=scan_settings or {}
+                ),
+                **screen_settings,
+            )
         write_json(path=stage / "summary.json", data=summary)
         inputs = (
             [genome_path, annotation_path, positive_genes, negative_genes]
@@ -1131,6 +1224,8 @@ def pipeline_workflow(
             "group_by": group_by,
             "matching": matching_settings,
             "evidence": serialise_settings(settings=evidence_settings or {}),
+            "scan_genome": scan_genome,
+            "scan": scan_settings or {},
         }
         write_json(
             path=stage / "manifest.json",
@@ -1145,5 +1240,108 @@ def pipeline_workflow(
                 "Leakage exclusions": audit,
                 "Reference overlaps": references,
             },
+        )
+    return summary
+
+
+def scan_targets(
+    *,
+    enrichment_path: Path | None = None,
+    motif_path: Path | None = None,
+    settings: dict[str, Any] | None = None,
+) -> tuple[list[Any], dict[str, Any]]:
+    """Separate motif selection from genome-screen settings.
+
+    Args:
+        enrichment_path: Generated positive-versus-negative enrichment TSV.
+        motif_path: Alternatively, a known-motif file.
+        settings: Selection and screening keyword arguments.
+
+    Returns:
+        Validated consensus targets and remaining screening settings.
+    """
+    from intergenic_regions.scanning import read_scan_motifs
+
+    remaining = dict(settings or {})
+    selection = {
+        key: remaining.pop(key)
+        for key in ("motif_format", "q_threshold", "max_motifs", "motif_ids")
+        if key in remaining
+    }
+    targets = read_scan_motifs(
+        enrichment_path=enrichment_path,
+        motif_path=motif_path,
+        **selection,
+    )
+    return targets, remaining
+
+
+def genome_scan_workflow(
+    *,
+    genome_path: Path,
+    output: Path,
+    enrichment_path: Path | None = None,
+    motif_path: Path | None = None,
+    annotation_path: Path | None = None,
+    annotation_format: str = "auto",
+    positive_genes: Path | None = None,
+    negative_genes: Path | None = None,
+    settings: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Publish an atomic genome-wide consensus screen and offline dashboard.
+
+    Args:
+        genome_path: Complete genome FASTA.
+        output: New output directory.
+        enrichment_path: Motif-enrichment TSV for positive-enriched selection.
+        motif_path: Alternatively, an IUPAC, MEME or JASPAR motif file.
+        annotation_path: Optional full annotation for distances and overlaps.
+        annotation_format: Annotation input format.
+        positive_genes: Optional discovery foreground gene identifiers.
+        negative_genes: Optional discovery control gene identifiers.
+        settings: Motif-selection and genome-screen options.
+
+    Returns:
+        Scan summary. Matches are unvalidated sequence hypotheses.
+    """
+    from intergenic_regions.scanning import genome_scan_outputs
+
+    targets, screen_settings = scan_targets(
+        enrichment_path=enrichment_path,
+        motif_path=motif_path,
+        settings=settings,
+    )
+    with output_bundle(path=output) as stage:
+        summary = genome_scan_outputs(
+            directory=stage,
+            genome_path=genome_path,
+            motifs=targets,
+            annotation_path=annotation_path,
+            annotation_format=annotation_format,
+            positive_genes=positive_genes,
+            negative_genes=negative_genes,
+            selection_settings=serialise_settings(settings=settings or {}),
+            **screen_settings,
+        )
+        inputs = [genome_path] + [
+            p
+            for p in (
+                enrichment_path,
+                motif_path,
+                annotation_path,
+                positive_genes,
+                negative_genes,
+            )
+            if p is not None
+        ]
+        write_json(
+            path=stage / "manifest.json",
+            data=provenance(
+                inputs=inputs,
+                settings={
+                    "annotation_format": annotation_format,
+                    **serialise_settings(settings=settings or {}),
+                },
+            ),
         )
     return summary

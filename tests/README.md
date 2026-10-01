@@ -12,6 +12,8 @@ The suite uses small deterministic datasets and no mandatory network calls.
 | test_background_evidence.py | Shared-promoter leakage, duplicates, GC/length matching, evidence union/unknown/negative cases |
 | test_motifs_statistics.py | Motif formats, known/exact/PWM scans, hypothesis family, Fisher/FDR checks, planted motifs |
 | test_learning.py | Fold-only vocabulary/scaling, grouped splits, null labels, permutations, inert model schema and prediction |
+| test_shap_explanations.py | Agreement with official LinearExplainer, fold backgrounds, subsampling, additive reconstruction, official PNG/PDF plots and missing plotting dependency |
+| test_genome_scanning.py | Brute-force matching property oracle, substitutions/IUPAC/strands, chunk boundaries, intergenic blockers, signed distances, tied starts, denominator heatmaps, hit caps and atomic outputs |
 | test_automatic_ml_prioritisation.py | Automatic ML defaults, unsupported data, transparent ranks, uncertainty and HTML interactivity |
 | test_workflows_cli_reporting.py | Focused workflows, plots, escaping, option handling, failures and end-to-end subprocess analysis |
 | test_references_homer.py | Reference build/checksum validation, controlled downloads, HOMER arguments/errors/timeouts |

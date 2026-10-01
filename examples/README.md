@@ -13,4 +13,7 @@ supplied oriented positive.fasta/negative.fasta exactly; a unit test verifies it
 The pipeline example in the README runs motifs plus automatic ML and produces
 report.html. Results demonstrate functioning software, not biological validity.
 All options are named and output paths must be new.
-
+The version 1.1.0 README example also runs automatic held-out SHAP and a genome
+screen with one substitution. Open the unified dashboard and the linked scan
+report; inspect exact counts/denominators in distance_profiles.tsv. Official
+SHAP plots and position/gene heatmaps have PNG/PDF downloads embedded in HTML.

@@ -22,6 +22,11 @@ from intergenic_regions.background import (
     canonical_sequence,
     check_sequence_sets,
 )
+from intergenic_regions.explanations import (
+    COMPOSITION_FEATURES,
+    explanation_sample,
+    summarise_shap,
+)
 from intergenic_regions.genome import sequence_composition
 from intergenic_regions.io import open_text
 from intergenic_regions.motifs import kmer_counts
@@ -246,6 +251,8 @@ def cross_validate_sequences(
     groups: Sequence[str] | None = None,
     max_features: int = 100000,
     regularisation: float = 1.0,
+    explanation_contexts: list[dict[str, Any]] | None = None,
+    explanation_indices: NDArray[np.int64] | None = None,
 ) -> tuple[
     NDArray[np.float64],
     NDArray[np.float64],
@@ -264,6 +271,9 @@ def cross_validate_sequences(
         groups: Optional independent groups.
         max_features: Vocabulary limit fitted separately in each fold.
         regularisation: Fixed model C; no validation-driven tuning.
+        explanation_contexts: Optional destination for training-only SHAP
+            contexts; omitted for permutation runs.
+        explanation_indices: Optional original row indices to explain.
 
     Returns:
         Sequence-model scores, baseline scores, fold IDs, fold metrics and
@@ -301,6 +311,26 @@ def cross_validate_sequences(
         scores[test] = model.predict_proba(X=combined[test])[:, 1]
         baseline_scores[test] = baseline.predict_proba(X=scaled[test])[:, 1]
         assignments[test] = fold
+        if explanation_contexts is not None:
+            explained = (
+                test[np.isin(test, explanation_indices)]
+                if explanation_indices is not None
+                else test
+            )
+            if len(explained):
+                explanation_contexts.append(
+                    {
+                        "matrix": combined[explained],
+                        "coefficients": model.coef_[0].copy(),
+                        "intercept": float(model.intercept_[0]),
+                        "background_mean": np.asarray(
+                            combined[train].mean(axis=0)
+                        ).ravel(),
+                        "feature_names": [*vocabulary, *COMPOSITION_FEATURES],
+                        "indices": explained,
+                        "fold": fold,
+                    }
+                )
         for word, index in vocabulary.items():
             coefficients[word].append(float(model.coef_[0, index]))
         metrics.append(
@@ -381,6 +411,10 @@ def fit_sequence_model(
     groups: Sequence[str] | None = None,
     max_features: int = 100000,
     regularisation: float = 1.0,
+    shap: bool = True,
+    shap_max_sequences: int = 1000,
+    shap_max_features: int = 20,
+    explanation_outputs: dict[str, Any] | None = None,
 ) -> tuple[
     list[dict[str, Any]],
     list[dict[str, Any]],
@@ -400,6 +434,11 @@ def fit_sequence_model(
         groups: Optional related-sequence or chromosome groups in FASTA order.
         max_features: Vocabulary limit.
         regularisation: Fixed inverse regularisation strength C.
+        shap: Calculate held-out SHAP automatically unless disabled.
+        shap_max_sequences: Reproducible explanation sample limit.
+        shap_max_features: Leading features in long explanations.
+        explanation_outputs: Optional destination for SHAP tables, separate
+            from the reusable model and its concise summary.
 
     Returns:
         Held-out predictions, signature coefficients, fold metrics, summary
@@ -424,6 +463,16 @@ def fit_sequence_model(
     labels = np.asarray(
         [1] * len(positive) + [0] * len(negative), dtype=np.int64
     )
+    selected_explanations = explanation_sample(
+        labels=labels, maximum=shap_max_sequences, seed=seed
+    )
+    if (
+        not isinstance(shap_max_features, int)
+        or isinstance(shap_max_features, bool)
+        or not 1 <= shap_max_features <= 100
+    ):
+        raise ValueError("SHAP max_features must be between one and 100")
+    contexts: list[dict[str, Any]] = []
     counters = [kmer_counts(sequence=s, lengths=lengths) for s in sequences]
     composition = composition_matrix(sequences=sequences)
     scores, baseline_scores, assignments, metrics, coefficients = (
@@ -436,6 +485,8 @@ def fit_sequence_model(
             groups=groups,
             max_features=max_features,
             regularisation=regularisation,
+            explanation_contexts=contexts if shap else None,
+            explanation_indices=selected_explanations,
         )
     )
     average_precision = float(
@@ -523,7 +574,7 @@ def fit_sequence_model(
             }
         )
     signatures.sort(key=lambda r: (-r["coefficient"], r["kmer"]))
-    summary = {
+    summary: dict[str, Any] = {
         "roc_auc": float(roc_auc_score(y_true=labels, y_score=scores)),
         "average_precision": average_precision,
         "baseline_roc_auc": float(
@@ -559,6 +610,23 @@ def fit_sequence_model(
         if groups is None
         else [],
     }
+    if shap:
+        explanations, importance, shap_summary = summarise_shap(
+            contexts=contexts,
+            identifiers=identifiers,
+            labels=labels.tolist(),
+            max_features=shap_max_features,
+        )
+        summary["shap"] = shap_summary
+        if explanation_outputs is not None:
+            explanation_outputs.update(
+                rows=explanations, importance=importance, summary=shap_summary
+            )
+    else:
+        summary["shap"] = {
+            "status": "disabled",
+            "reason": "User disabled SHAP",
+        }
     exported = {
         "schema_version": 1,
         "lengths": list(lengths),
@@ -567,6 +635,9 @@ def fit_sequence_model(
         "intercept": float(model.intercept_[0]),
         "composition_mean": scaler.mean_.tolist(),
         "composition_scale": scaler.scale_.tolist(),
+        "feature_background_mean": np.asarray(matrix.mean(axis=0))
+        .ravel()
+        .tolist(),
         "training_sequence_sha256": [
             hashlib.sha256(
                 canonical_sequence(sequence=s).encode("ascii")

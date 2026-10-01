@@ -63,3 +63,20 @@ reports why the model cannot be estimated.
 The source archive is a complete package, not a legacy-file overlay. Prefer
 applying the supplied Git bundle/patch so removed scripts really are removed.
 
+## Version 1.0.0 to 1.1.0
+
+Existing extraction/enrichment/model APIs and named options remain compatible.
+Reinstall `python -m pip install --editable '.[analysis]'` to obtain SHAP.
+Motif workflows now generate exact held-out SHAP automatically when ML is
+estimable. `--no-shap` disables this addition; `--no-ml` disables the model.
+Old schema-version-1 JSON models still predict normally. New models additionally
+record a full-training feature background mean; held-out SHAP never uses it.
+
+`--scan-genome` adds a consensus screen to `pipeline`; `scan-genome` reuses
+enrichment TSVs or supplied motifs independently. Genome screening is opt-in.
+Substitutions default to zero; `--scan-mismatches 1` allows one. Extraction's
+strict boundary behaviour and native discovery statistics are unchanged.
+
+Figures now provide embedded PNG/PDF downloads in HTML. TSV/BED/model links
+still require the companion output folder. New SHAP/scan TSVs are additional
+outputs; they do not change candidate uncertainty or evidence tiers.

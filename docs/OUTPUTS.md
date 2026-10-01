@@ -2,7 +2,8 @@
 
 All package-owned tabular files are TSV. Null evidence/undefined values appear
 as empty fields (HTML displays NA). JSON is strict: no NaN or Infinity.
-HTML embeds plot pixels, CSS and JavaScript; no external runtime is required.
+HTML embeds PNG/PDF figure downloads, CSS and JavaScript; no external runtime
+is required. Data/model links remain relative to the companion folder.
 
 | File | Meaning |
 | --- | --- |
@@ -29,10 +30,22 @@ HTML embeds plot pixels, CSS and JavaScript; no external runtime is required.
 | ai/model.json | Reusable inert model, weights/scaling/training fingerprints |
 | ai/summary.json | Model metrics or an explicit disabled/unavailable/not_estimable status |
 | ai/figures/*.png / *.pdf | Held-out ROC/PR, signatures and permutation results |
+| ai/shap_values.tsv | Leading fold-specific contributions plus an additive remainder per explained sequence; base value, logit, score and scope |
+| ai/shap_importance.tsv | Mean absolute/signed SHAP across all features and the explained sample; fold availability counts |
+| ai/figures/shap_*.png / *.pdf | Official SHAP bar, beeswarm, heatmap, highest/lowest-score waterfalls and leading-feature dependence |
+| genome_scan/report.html | Offline whole-genome screen with distance, gene burden and mismatch graphics |
+| genome_scan/genome_motif_sites.tsv / *.bed | Complete streaming physical hits, substitutions, reference-strand bases, nearest-gene proxy and explicit uncertainty |
+| genome_scan/scan_motifs.tsv | Selected consensus patterns, source kind and optional discovery q-value |
+| genome_scan/distance_profiles.tsv | Per-motif/cohort signed distance bins, physical counts, eligible windows and density per million |
+| genome_scan/scan_burden.tsv | Counts by motif, contig and minimum substitution number |
+| genome_scan/gene_motif_counts.tsv | Nearest-gene physical motif burden; tied sites use a stable representative |
+| genome_scan/summary.json | Screen method/settings/counts and TSS-proxy interpretation |
 
 In standalone enrich output, motif tables/figures are at the root rather than
 under motifs/. Prediction-only output uses candidate_scores.tsv. Extraction
 bundles include evidence tables even when no evidence was supplied.
+Standalone scan-genome writes its scan files at the root rather than under
+genome_scan/. Its preview contains at most 500 hits; the TSV/BED remains complete.
 
 The top-level report links full data; table previews are not an alternative
 to the TSV when analysing hundreds or thousands of candidates. Image captions
@@ -52,4 +65,3 @@ before offset and retained-length filtering.
 ML completed means internal held-out modelling finished; it does not indicate
 external biological validation. not_estimable/unavailable/disabled report why
 no model scores were produced. Existing result paths are never reused.
-
