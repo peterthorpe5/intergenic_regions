@@ -95,12 +95,14 @@ def prioritise_candidates(
                 - contradicts,
                 "enhancer_status": "unvalidated_candidate",
                 "uncertainty": (
-                    "Gene-level evidence is contradictory; inspect assay context. "
+                    "Gene-level evidence is contradictory; "
+                    "inspect assay context. "
                     if contradicts
                     else ""
                 )
                 + (
-                    "Supplied context supports prioritisation; interval-specific "
+                    "Supplied context supports prioritisation; "
+                    "interval-specific "
                     "function and target-gene linkage remain unestablished."
                     if tier
                     else "Sequence-only hypothesis; regulatory activity and "

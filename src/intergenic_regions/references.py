@@ -279,7 +279,8 @@ def query_references(
         }
         if contigs and not contigs & index.intervals.keys():
             raise ValueError(
-                "Reference and query have no shared contig IDs; provide matching assembly naming"
+                "Reference and query have no shared contig IDs; "
+                "provide matching assembly naming"
             )
         for region in regions:
             if region.status != "retained":

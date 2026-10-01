@@ -13,7 +13,7 @@ from intergenic_regions.models import Region
 
 
 class PeakIndex:
-    """An interval index for merged accessibility or enhancer BED annotations."""
+    """Index merged accessibility or enhancer BED annotations."""
 
     def __init__(self, *, intervals: dict[str, list[tuple[int, int]]]) -> None:
         """Merge peaks so overlapping annotations cannot inflate coverage.
@@ -93,7 +93,7 @@ def read_functional_evidence(*, path: Path) -> dict[str, list[dict[str, str]]]:
     """Read optional user-supplied functional results keyed by gene ID.
 
     Args:
-        path: TSV with ``gene_id``, ``evidence_type``, ``value`` and ``source``.
+        path: TSV with gene_id, evidence_type, value and source columns.
 
     Returns:
         Evidence records grouped by exact gene ID.

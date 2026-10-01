@@ -91,6 +91,26 @@ def test_fasta_roundtrip_and_soft_mask(tmp_path):
 
 
 @pytest.mark.parametrize(
+    "records",
+    [
+        {"": "AAA"},
+        {"bad id": "AAA"},
+        {"g\n>x": "AAA"},
+        {"g": ""},
+        {"g": "AXX"},
+        {"g": None},
+        {1: "AAA"},
+    ],
+)
+def test_fasta_writer_validates_before_modifying_output(tmp_path, records):
+    path = tmp_path / "unchanged.fa"
+    path.write_text("existing content")
+    with pytest.raises(ValueError):
+        write_fasta(path=path, records=records)
+    assert path.read_text() == "existing content"
+
+
+@pytest.mark.parametrize(
     "text",
     [
         "",

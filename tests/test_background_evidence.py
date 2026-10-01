@@ -4,15 +4,6 @@ from dataclasses import replace
 
 import pytest
 
-
-def test_invalid_peak_query():
-    from intergenic_regions.evidence import PeakIndex
-
-    index = PeakIndex(intervals={})
-    for start, end in ((-1, 5), (5, 4)):
-        with pytest.raises(ValueError, match="query interval"):
-            index.overlap_bases(contig="x", start=start, end=end)
-
 from intergenic_regions.background import (
     canonical_sequence,
     check_sequence_sets,
@@ -27,6 +18,13 @@ from intergenic_regions.evidence import (
     read_functional_evidence,
 )
 from intergenic_regions.models import Region
+
+
+def test_invalid_peak_query():
+    index = PeakIndex(intervals={})
+    for start, end in ((-1, 5), (5, 4)):
+        with pytest.raises(ValueError, match="query interval"):
+            index.overlap_bases(contig="x", start=start, end=end)
 
 
 @pytest.fixture
@@ -139,7 +137,8 @@ def test_background_matching_is_deterministic(regions):
 def test_peak_union_and_overlap_boundaries(tmp_path):
     path = tmp_path / "peaks.bed"
     path.write_text(
-        "track name=x\nbrowser position=x\n#comment\nx\t2\t5\tpeak1\nx\t4\t8\tpeak2\nx\t10\t12\tpeak3\n"
+        "track name=x\nbrowser position=x\n#comment\n"
+        "x\t2\t5\tpeak1\nx\t4\t8\tpeak2\nx\t10\t12\tpeak3\n"
     )
     index = read_bed(path=path)
     assert index.overlap_bases(contig="x", start=0, end=12) == 8

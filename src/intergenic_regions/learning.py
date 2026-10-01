@@ -190,7 +190,8 @@ def validation_splits(
             or len(np.unique(labels[test])) != 2
         ):
             raise ValueError(
-                "A validation fold lacks a class; use fewer folds or revise independent groups"
+                "A validation fold lacks a class; use fewer folds "
+                "or revise independent groups"
             )
         if groups is not None and {groups[int(i)] for i in train} & {
             groups[int(i)] for i in test
@@ -410,7 +411,8 @@ def fit_sequence_model(
     check_sequence_sets(positive=positive, negative=negative)
     if min(len(positive), len(negative)) < 5:
         raise ValueError(
-            "AI analysis requires at least five independent sequences per class"
+            "AI analysis requires at least five independent "
+            "sequences per class"
         )
     kmer_family_size(lengths=lengths)
     if not lengths or permutations < 0:
@@ -454,7 +456,8 @@ def fit_sequence_model(
             )
             if not exchangeable:
                 LOGGER.warning(
-                    "No non-trivial grouped label exchanges; permutation test unavailable"
+                    "No non-trivial grouped label exchanges; "
+                    "permutation test unavailable"
                 )
                 null_scores = []
                 break
@@ -471,7 +474,8 @@ def fit_sequence_model(
             )
         except ValueError as exc:
             raise ValueError(
-                "Permutation validation failed; use fewer folds or disable permutations explicitly"
+                "Permutation validation failed; use fewer folds "
+                "or disable permutations explicitly"
             ) from exc
         null_scores.append(
             float(
@@ -540,10 +544,17 @@ def fit_sequence_model(
         "grouped_validation": groups is not None,
         "folds": folds,
         "seed": seed,
-        "model": "L2 logistic regression on canonical k-mer frequency plus composition",
-        "interpretation": "Scores measure resemblance to the supplied positive class; they are not calibrated probabilities of enhancer function.",
+        "model": (
+            "L2 logistic regression on canonical k-mer frequency "
+            "plus composition"
+        ),
+        "interpretation": (
+            "Scores measure resemblance to the supplied positive class; "
+            "they are not calibrated probabilities of enhancer function."
+        ),
         "warnings": [
-            "Ungrouped validation does not protect against paralogy or related loci; supply groups for those data."
+            "Ungrouped validation does not protect against paralogy or "
+            "related loci; supply groups for those data."
         ]
         if groups is None
         else [],
@@ -638,7 +649,10 @@ def predict_sequences(
                 canonical_sequence(sequence=sequence).encode("ascii")
             ).hexdigest()
             in training,
-            "interpretation": "positive-class sequence signature; enhancer function requires evidence",
+            "interpretation": (
+                "positive-class sequence signature; enhancer function "
+                "requires evidence"
+            ),
         }
         for i, (identifier, sequence) in enumerate(sequences.items())
     ]

@@ -1,4 +1,4 @@
-"""Complete workflows, command-line failures and portable scientific reports."""
+"""Complete workflows, CLI failures and portable scientific reports."""
 
 import json
 import subprocess

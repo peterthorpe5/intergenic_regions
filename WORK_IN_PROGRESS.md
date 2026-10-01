@@ -14,6 +14,13 @@ Verification before the latest additions: 153 tests passed, 98.12% combined
 statement/branch coverage and mypy passed. The focused suite for automatic ML,
 prioritisation, annotation and extraction subsequently passed 70 tests.
 
-Still in progress: README/migration/method documentation and runnable examples;
-PEP8 long-line cleanup; final complete pytest/coverage, packaging and rendered
-HTML checks. This checkpoint is deliberately not a release.
+Latest verification: 195 pytest tests passed; combined statement/branch
+coverage is 98.92%. Ruff lint/format, mypy and distribution builds passed.
+A clean virtual environment containing only the wheel and its base dependencies
+successfully extracted all 20 positive demo flanks, without the optional ML or
+plotting stack. Full documentation, CI configuration and a reproducible
+mixed-strand/blocker example are now present.
+
+Still in progress: final rendered HTML/browser verification and complete
+delivery archive. GitHub integration rejected writes with HTTP 403; source and
+Git-history checkpoints have therefore been saved as downloadable artifacts.

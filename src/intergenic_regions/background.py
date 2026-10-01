@@ -47,7 +47,8 @@ def check_sequence_sets(
         key = canonical_sequence(sequence=sequence)
         if key in seen:
             raise ValueError(
-                "Duplicate/shared sequence (including reverse complement); deduplicate before analysis"
+                "Duplicate/shared sequence (including reverse complement); "
+                "deduplicate before analysis"
             )
         seen.add(key)
 
@@ -230,7 +231,8 @@ def match_background(
         )
         if len(options) < ratio:
             raise ValueError(
-                f"Cannot match controls for {region.sequence_id}; supply more controls or relax tolerances"
+                f"Cannot match controls for {region.sequence_id}; "
+                "supply more controls or relax tolerances"
             )
         for _, key, gc_difference, length_ratio in options[:ratio]:
             selected.append(replace(candidates.pop(key)))

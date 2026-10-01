@@ -159,17 +159,26 @@ def write_regions(
             gff.write("##gff-version 3\n")
             for region in retained:
                 bed.write(
-                    f"{region.contig}\t{region.start}\t{region.end}\t{region.sequence_id}\t0\t{region.strand}\n"
+                    f"{region.contig}\t{region.start}\t{region.end}\t"
+                    f"{region.sequence_id}\t0\t{region.strand}\n"
                 )
-                attributes = f"ID={quote(region.sequence_id, safe='._-')};gene_id={quote(region.gene_id, safe='._-')};direction={region.direction}"
+                attributes = (
+                    f"ID={quote(region.sequence_id, safe='._-')};"
+                    f"gene_id={quote(region.gene_id, safe='._-')};"
+                    f"direction={region.direction}"
+                )
                 gff.write(
-                    f"{region.contig}\tintergenic-regions\tintergenic_region\t{region.start + 1}\t{region.end}\t.\t{region.strand}\t.\t{attributes}\n"
+                    f"{region.contig}\tintergenic-regions\tintergenic_region\t"
+                    f"{region.start + 1}\t{region.end}\t.\t"
+                    f"{region.strand}\t.\t{attributes}\n"
                 )
     summary = {
         "requested_regions": len(regions),
         "retained_regions": len(retained),
         "status_counts": dict(Counter(r.status for r in regions)),
-        "coordinates": "BED/TSV zero-based half-open; GFF3 one-based inclusive",
+        "coordinates": (
+            "BED/TSV zero-based half-open; GFF3 one-based inclusive"
+        ),
     }
     write_json(path=directory / "summary.json", data=summary)
     return summary
@@ -373,7 +382,10 @@ def extract_workflow(
                 "Reference overlaps": references,
             },
             notes=[
-                "All blockers come from the full annotation. Sequences stop before any annotated gene, regardless of strand. Missing annotations cannot be detected from the genome sequence alone."
+                "All blockers come from the full annotation. Sequences stop "
+                "before any annotated gene, regardless of strand. Missing "
+                "annotations cannot be detected from the genome sequence "
+                "alone."
             ],
         )
     return summary
@@ -500,9 +512,15 @@ def enrichment_outputs(
         tables={"Motif enrichment": rows},
         images=images,
         notes=[
-            "The unit of testing is sequence presence, not the number of overlapping sites. BH correction includes all possible tested words, including unobserved k-mers.",
-            "PWM site p-values use a discretised zero-order background; enrichment q-values apply to sequence-level tests. Exact IUPAC patterns are not assigned site p-values.",
-            "Check background composition and biological independence. Motif enrichment supports a regulatory hypothesis; it does not establish enhancer function.",
+            "The unit of testing is sequence presence, not the number of "
+            "overlapping sites. BH correction includes all possible tested "
+            "words, including unobserved k-mers.",
+            "PWM site p-values use a discretised zero-order background; "
+            "enrichment q-values apply to sequence-level tests. Exact "
+            "IUPAC patterns are not assigned site p-values.",
+            "Check background composition and biological independence. "
+            "Motif enrichment supports a regulatory hypothesis; it does "
+            "not establish enhancer function.",
         ],
     )
     return summary
@@ -555,18 +573,23 @@ def enrichment_workflow(
             groups_path=groups_path,
         )
         prediction_by_id = {row["sequence_id"]: row for row in predictions}
-        candidate_rows = prioritise_candidates(rows=[
-            {
-                "sequence_id": identifier,
-                "label": label,
-                **sequence_composition(sequence=sequence),
-                "held_out_signature_score": prediction_by_id.get(
-                    identifier, {}
-                ).get("held_out_signature_score"),
-            }
-            for label, records in (("positive", positive), ("negative", negative))
-            for identifier, sequence in records.items()
-        ])
+        candidate_rows = prioritise_candidates(
+            rows=[
+                {
+                    "sequence_id": identifier,
+                    "label": label,
+                    **sequence_composition(sequence=sequence),
+                    "held_out_signature_score": prediction_by_id.get(
+                        identifier, {}
+                    ).get("held_out_signature_score"),
+                }
+                for label, records in (
+                    ("positive", positive),
+                    ("negative", negative),
+                )
+                for identifier, sequence in records.items()
+            ]
+        )
         write_tsv(
             path=stage / "candidate_priorities.tsv",
             rows=candidate_rows,
@@ -612,7 +635,7 @@ def automatic_learning(
     groups_path: Path | None = None,
     groups: Sequence[str] | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """Run sequence learning, reporting unsupported data without inventing scores.
+    """Run ML and report unsupported data without inventing scores.
 
     Args:
         directory: Model result directory.
@@ -719,8 +742,38 @@ def analysis_report(
         title="Intergenic regulatory sequence analysis",
         summary=summary,
         tables={
-            "Ranked candidate regions": candidates,
-            "Motif enrichment": motifs,
+            "Ranked candidate regions": [
+                {
+                    key: row.get(key)
+                    for key in (
+                        "priority_rank",
+                        "sequence_id",
+                        "label",
+                        "held_out_signature_score",
+                        "support_category",
+                        "accessibility_overlap_fraction",
+                        "reference_support_count",
+                        "enhancer_status",
+                    )
+                }
+                for row in candidates
+            ],
+            "Motif enrichment": [
+                {
+                    key: row.get(key)
+                    for key in (
+                        "motif_id",
+                        "consensus",
+                        "q_value",
+                        "p_value",
+                        "positive_fraction",
+                        "negative_fraction",
+                        "fold_enrichment",
+                        "kind",
+                    )
+                }
+                for row in motifs
+            ],
             "Held-out model validation": metrics,
             **(extra_tables or {}),
         },
@@ -828,9 +881,17 @@ def learning_outputs(
         },
         images=images,
         notes=[
-            "Vocabulary selection, composition scaling and classifier fitting occur separately inside each validation fold. Reported validation scores never come from the model fitted to the full training set.",
-            "The GC/length/ambiguity baseline helps identify composition-driven separation. Model coefficients are exploratory signatures, with fold stability rather than per-feature significance p-values.",
-            "Sequence scores measure resemblance to the supplied positive class. Chromatin overlap and user-supplied functional results are separate evidence, and do not change training labels.",
+            "Vocabulary selection, composition scaling and classifier "
+            "fitting occur separately inside each validation fold. "
+            "Reported validation scores never come from the model "
+            "fitted to the full training set.",
+            "The GC/length/ambiguity baseline helps identify "
+            "composition-driven separation. Model coefficients are "
+            "exploratory signatures, with fold stability rather than "
+            "per-feature significance p-values.",
+            "Sequence scores measure resemblance to the supplied positive "
+            "class. Chromatin overlap and user-supplied functional results "
+            "are separate evidence, and do not change training labels.",
         ],
     )
     return summary, predictions
@@ -918,7 +979,7 @@ def pipeline_workflow(
         Integrated workflow summary.
 
     Raises:
-        ValueError: Lists overlap, no independent data remain or grouping fails.
+        ValueError: Lists overlap or no independent data remain.
     """
     if group_by not in {"gene", "contig"}:
         raise ValueError("AI group_by must be gene or contig")

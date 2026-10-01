@@ -13,7 +13,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any, TextIO
 
-from intergenic_regions import __version__
+from intergenic_regions._version import __version__
 
 DNA = frozenset("ACGTRYSWKMBDHVNacgtryswkmbdhvn")
 
@@ -110,7 +110,21 @@ def write_fasta(*, path: Path, records: Mapping[str, str]) -> None:
     Args:
         path: Output file.
         records: Identifier-to-sequence mapping.
+
+    Raises:
+        ValueError: An identifier or DNA sequence is invalid; validation
+            occurs before the destination is opened.
     """
+    for identifier, sequence in records.items():
+        if (
+            not isinstance(identifier, str)
+            or not identifier
+            or any(c.isspace() for c in identifier)
+            or not isinstance(sequence, str)
+            or not sequence
+            or not set(sequence) <= DNA
+        ):
+            raise ValueError("Invalid FASTA identifier or DNA sequence")
     with path.open(mode="w", encoding="utf-8") as stream:
         for identifier, sequence in records.items():
             stream.write(f">{identifier}\n")

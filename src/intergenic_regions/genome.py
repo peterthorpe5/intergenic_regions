@@ -1,6 +1,7 @@
 """Indexed genome access without modifying input directories."""
 
 import gzip
+import logging
 import shutil
 import tempfile
 from pathlib import Path
@@ -8,11 +9,65 @@ from types import TracebackType
 
 from pyfaidx import Fasta, FastaIndexingError
 
-from intergenic_regions.io import DNA
+from intergenic_regions.io import DNA, open_text
+
+LOGGER = logging.getLogger(__name__)
 
 COMPLEMENT = str.maketrans(
     "ACGTRYSWKMBDHVNacgtryswkmbdhvn", "TGCAYRSWMKVHDBNtgcayrswmkvhdbn"
 )
+
+
+def normalise_genome(*, source: Path, destination: Path) -> None:
+    """Stream irregularly wrapped FASTA into a private indexable copy.
+
+    Args:
+        source: Original plain or gzip FASTA.
+        destination: Temporary normalised FASTA path.
+
+    Raises:
+        ValueError: IDs repeat, records are empty, DNA is malformed or
+            source and destination are the same path.
+    """
+    if source.resolve() == destination.resolve():
+        raise ValueError("Normalisation source and destination must differ")
+    seen: set[str] = set()
+    current: str | None = None
+    buffer = ""
+    record_bases = 0
+    with open_text(path=source) as stream:
+        with destination.open(mode="w", encoding="utf-8") as output:
+            for raw in stream:
+                line = raw.strip()
+                if not line:
+                    continue
+                if line.startswith(">"):
+                    if current is not None and not record_bases:
+                        raise ValueError("Genome contains an empty record")
+                    if buffer:
+                        output.write(buffer + "\n")
+                    fields = line[1:].split()
+                    if not fields or fields[0] in seen:
+                        raise ValueError("Invalid or duplicate genome ID")
+                    current = fields[0]
+                    seen.add(current)
+                    buffer, record_bases = "", 0
+                    output.write(f">{current}\n")
+                else:
+                    if current is None or not set(line) <= DNA:
+                        raise ValueError("Invalid DNA or genome FASTA")
+                    record_bases += len(line)
+                    buffer += line
+                    stop = len(buffer) - len(buffer) % 80
+                    for start in range(0, stop, 80):
+                        output.write(buffer[start : start + 80] + "\n")
+                    buffer = buffer[stop:]
+            if current is None or not record_bases:
+                raise ValueError(
+                    "Genome contains no sequence or an empty record"
+                )
+            if buffer:
+                output.write(buffer + "\n")
 
 
 def reverse_complement(*, sequence: str) -> str:
@@ -89,16 +144,28 @@ class Genome:
                 with gzip.open(filename=self.path, mode="rb") as source:
                     with path.open(mode="wb") as destination:
                         shutil.copyfileobj(fsrc=source, fdst=destination)
-            self._fasta = Fasta(
-                filename=str(path),
-                indexname=str(temporary / "genome.fai"),
-                as_raw=True,
-                strict_bounds=True,
-                duplicate_action="stop",
-                sequence_always_upper=False,
-            )
+            settings = {
+                "indexname": str(temporary / "genome.fai"),
+                "as_raw": True,
+                "strict_bounds": True,
+                "duplicate_action": "stop",
+                "sequence_always_upper": False,
+            }
+            try:
+                self._fasta = Fasta(filename=str(path), **settings)
+            except FastaIndexingError as exc:
+                if "Line length" not in str(exc):
+                    raise
+                LOGGER.info(
+                    "Normalising irregular FASTA wrapping: %s", self.path
+                )
+                normalised = temporary / "normalised.fasta"
+                normalise_genome(source=self.path, destination=normalised)
+                self._fasta = Fasta(filename=str(normalised), **settings)
             if not self._fasta.keys():
                 raise ValueError("Genome has no FASTA records")
+            if any(len(self._fasta[key]) == 0 for key in self._fasta.keys()):
+                raise ValueError("Genome contains an empty FASTA record")
         except FastaIndexingError as exc:
             self.close()
             raise ValueError(f"Cannot index genome FASTA: {exc}") from exc

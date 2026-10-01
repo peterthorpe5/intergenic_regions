@@ -595,7 +595,9 @@ def analyse_motifs(
             sum(r["log_q_value"] <= np.log(0.05) for r in records)
         ),
         "test": "one-sided sequence-presence Fisher exact",
-        "fdr": "Benjamini-Hochberg across known motifs and all possible k-mers",
+        "fdr": (
+            "Benjamini-Hochberg across known motifs and all possible k-mers"
+        ),
     }
     LOGGER.info(
         "Tested %d hypotheses; %d pass q <= 0.05",

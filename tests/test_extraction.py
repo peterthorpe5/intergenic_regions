@@ -13,6 +13,7 @@ from intergenic_regions.extraction import (
 )
 from intergenic_regions.genome import (
     Genome,
+    normalise_genome,
     reverse_complement,
     sequence_composition,
 )
@@ -34,6 +35,38 @@ def test_reverse_complement_and_composition():
     }
     assert sequence_composition(sequence="")["ambiguous_fraction"] == 0
     assert sequence_composition(sequence="NN")["gc_fraction"] == 0
+
+
+def test_normalise_irregular_fasta_preserves_case_and_bases(tmp_path):
+    source = tmp_path / "irregular.fa"
+    source.write_text(">x description\n" + "Ac" * 41 + "\n\nGT\n>y\nTT\nT\n")
+    destination = tmp_path / "normalised.fa"
+    normalise_genome(source=source, destination=destination)
+    with Genome(path=source) as genome:
+        assert genome.lengths == {"x": 84, "y": 3}
+        assert genome.fetch(contig="x", start=0, end=84) == "Ac" * 41 + "GT"
+    assert not (source.parent / "irregular.fa.fai").exists()
+    with pytest.raises(ValueError, match="must differ"):
+        normalise_genome(source=source, destination=source)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "AAA",
+        ">\nAAA",
+        ">x\nAAA\n>x\nTTT",
+        ">x\nAZZ",
+        ">x\n>y\nTTT",
+        ">x\nAAA\n>y\n",
+    ],
+)
+def test_normalise_rejects_bad_genomes(tmp_path, text):
+    source = tmp_path / "bad.fa"
+    source.write_text(text)
+    with pytest.raises(ValueError):
+        normalise_genome(source=source, destination=tmp_path / "out.fa")
 
 
 def test_genome_plain_gzip_bounds_and_cleanup(tmp_path):
@@ -65,7 +98,15 @@ def test_genome_plain_gzip_bounds_and_cleanup(tmp_path):
         assert genome.fetch(contig="x", start=0, end=4) == "ACgt"
 
 
-@pytest.mark.parametrize("text", [">x\nAXX\n", ">x\nAAA\n>x\nTTT\n", ""])
+@pytest.mark.parametrize(
+    "text",
+    [
+        ">x\nAXX\n",
+        ">x\nAAA\n>x\nTTT\n",
+        "",
+        ">x\n>y\nAAA\n",
+    ],
+)
 def test_invalid_genomes(tmp_path, text):
     path = tmp_path / "bad.fa"
     path.write_text(text)

@@ -50,10 +50,12 @@ def dataset(*, tmp_path: Path) -> dict[str, Path]:
     paths["positive_genes"].write_text("\n".join(positive) + "\n")
     paths["negative_genes"].write_text("\n".join(negative) + "\n")
     paths["motifs"].write_text(
-        "motif_id\tpattern\tname\nGbox\tCACGTG\tG box\nAbsent\tAAAAAAA\tabsent\n"
+        "motif_id\tpattern\tname\nGbox\tCACGTG\tG box\n"
+        "Absent\tAAAAAAA\tabsent\n"
     )
     paths["peaks"].write_text("p0\t40\t70\tpeak\n")
     paths["evidence"].write_text(
-        "gene_id\tevidence_type\tvalue\tsource\np0\treporter_assay\tpositive\tuser experiment\n"
+        "gene_id\tevidence_type\tvalue\tsource\n"
+        "p0\treporter_assay\tpositive\tuser experiment\n"
     )
     return paths

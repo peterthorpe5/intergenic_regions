@@ -409,6 +409,18 @@ def write_report(
             "ML status",
             ai_summary.get("status", summary.get("status", "not applicable")),
         ),
+        (
+            "Composition baseline ROC AUC",
+            ai_summary.get(
+                "baseline_roc_auc", summary.get("baseline_roc_auc", "—")
+            ),
+        ),
+        (
+            "Permutation p-value",
+            ai_summary.get(
+                "permutation_p_value", summary.get("permutation_p_value", "—")
+            ),
+        ),
     ]
     body = [
         "<header><p class='eyebrow'>INTERGENIC REGIONS · RESULTS</p>",
@@ -418,6 +430,8 @@ def write_report(
         "<section class='metrics' aria-label='Key results'>",
     ]
     for label, value in metrics:
+        if value is None:
+            value = "not estimated"
         displayed = f"{value:.3f}" if isinstance(value, float) else str(value)
         body.append(
             f"<article class='metric'><span>{escape(label)}</span>"
@@ -447,18 +461,22 @@ def write_report(
             )
         body.append("</nav>")
     body.append(
-        "<section id='figures'><h2>Patterns and predictive evidence</h2><div class='gallery'>"
+        "<section id='figures'><h2>Patterns and predictive evidence</h2>"
+        "<div class='gallery'>"
     )
-    body.append("")
     for image in images:
         encoded = base64.b64encode(image.read_bytes()).decode("ascii")
         body.append(
-            f'<figure><img alt="{escape(image.stem)}" src="data:image/png;base64,{encoded}"><figcaption>{escape(image.stem.replace("_", " "))}</figcaption></figure>'
+            f'<figure><img alt="{escape(image.stem)}" '
+            f'src="data:image/png;base64,{encoded}"><figcaption>'
+            f"{escape(image.stem.replace('_', ' '))}"
+            "</figcaption></figure>"
         )
     body.append("</div></section>")
     for table_number, (name, rows) in enumerate((tables or {}).items()):
         body.append(
-            f"<section id='table-{table_number}' class='results'><h2>{escape(name)}</h2>"
+            f"<section id='table-{table_number}' class='results'>"
+            f"<h2>{escape(name)}</h2>"
         )
         if not rows:
             body.append("<p>No records.</p></section>")
@@ -473,9 +491,11 @@ def write_report(
             f"{len(rows)} records. Select a column heading to sort.</p>"
         )
         body.append(
-            f"<div class='table'><table id='results-{table_number}'><thead><tr>"
+            "<div class='table'>"
+            f"<table id='results-{table_number}'><thead><tr>"
             + "".join(
-                f"<th scope='col'><button type='button' data-sort='{i}'>{escape(field.replace('_', ' '))}</button></th>"
+                f"<th scope='col'><button type='button' data-sort='{i}'>"
+                f"{escape(field.replace('_', ' '))}</button></th>"
                 for i, field in enumerate(fields)
             )
             + "</tr></thead><tbody>"
@@ -494,18 +514,23 @@ def write_report(
                 cells.append(f"<td>{escape(text)}</td>")
             body.append("<tr>" + "".join(cells) + "</tr>")
         body.append(
-            "</tbody></table></div><p class='muted'>Full results are available "
+            "</tbody></table></div><p class='muted'>Full results are "
+            "available "
             "in the accompanying TSV files.</p></section>"
         )
     body.append(
-        "<details id='provenance'><summary>Methods, metrics and run details</summary>"
-        f"<pre>{escape(json.dumps(obj=dict(summary), indent=2, allow_nan=False))}</pre></details>"
+        "<details id='provenance'><summary>Methods, metrics "
+        "and run details</summary><pre>"
+        + escape(json.dumps(obj=dict(summary), indent=2, allow_nan=False))
+        + "</pre></details>"
     )
     assets = Path(__file__).parent / "assets"
     css = (assets / "report.css").read_text(encoding="utf-8")
     script = (assets / "report.js").read_text(encoding="utf-8")
     document = (
-        "<!doctype html><html lang='en-GB'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>"
+        "<!doctype html><html lang='en-GB'><meta charset='utf-8'>"
+        "<meta name='viewport' "
+        "content='width=device-width,initial-scale=1'><title>"
         + escape(title)
         + "</title><style>"
         + css

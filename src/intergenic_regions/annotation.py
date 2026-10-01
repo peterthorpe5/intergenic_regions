@@ -113,7 +113,9 @@ def parse_feature(*, line: str, annotation_format: str) -> Feature:
     )
     first, last = int(start), int(end)
     if (
-        not contig or not kind or any(c.isspace() for c in contig)
+        not contig
+        or not kind
+        or any(c.isspace() for c in contig)
         or phase not in {".", "0", "1", "2"}
         or (score != "." and not math.isfinite(float(score)))
     ):

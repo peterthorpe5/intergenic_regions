@@ -39,13 +39,16 @@ def test_discontinuous_gene_and_escaped_contig(tmp_path):
     assert (genes[0].contig, genes[0].start, genes[0].end) == ("x:1", 0, 20)
 
 
-@pytest.mark.parametrize("row", [
-    "x\ts\tgene\t1\t5\tNaN\t+\t.\tID=g",
-    "x\ts\tgene\t1\t5\tbad\t+\t.\tID=g",
-    "x\ts\tCDS\t1\t5\t.\t+\t4\tID=g",
-    "\ts\tgene\t1\t5\t.\t+\t.\tID=g",
-    "x\ts\t\t1\t5\t.\t+\t.\tID=g",
-])
+@pytest.mark.parametrize(
+    "row",
+    [
+        "x\ts\tgene\t1\t5\tNaN\t+\t.\tID=g",
+        "x\ts\tgene\t1\t5\tbad\t+\t.\tID=g",
+        "x\ts\tCDS\t1\t5\t.\t+\t4\tID=g",
+        "\ts\tgene\t1\t5\t.\t+\t.\tID=g",
+        "x\ts\t\t1\t5\t.\t+\t.\tID=g",
+    ],
+)
 def test_invalid_score_phase_and_identifiers(row):
     with pytest.raises(ValueError):
         parse_feature(line=row, annotation_format="gff3")
@@ -127,7 +130,11 @@ def test_hierarchy_and_cycle():
 def test_unsorted_gff_preserves_ids_and_utrs(tmp_path):
     path = tmp_path / "annotation.gff3"
     path.write_text(
-        "##gff-version 3\nx\ts\tCDS\t20\t40\t.\t+\t0\tID=cds;Parent=t.1\nx\ts\texon\t10\t50\t.\t+\t.\tParent=t.1\nx\ts\tmRNA\t10\t50\t.\t+\t.\tID=t.1;Parent=g.1\nx\ts\tgene\t10\t50\t.\t+\t.\tID=g.1\n##FASTA\n>x\nAAAA\n"
+        "##gff-version 3\n"
+        "x\ts\tCDS\t20\t40\t.\t+\t0\tID=cds;Parent=t.1\n"
+        "x\ts\texon\t10\t50\t.\t+\t.\tParent=t.1\n"
+        "x\ts\tmRNA\t10\t50\t.\t+\t.\tID=t.1;Parent=g.1\n"
+        "x\ts\tgene\t10\t50\t.\t+\t.\tID=g.1\n##FASTA\n>x\nAAAA\n"
     )
     genes = read_annotation(path=path)
     assert [(g.gene_id, g.start, g.end) for g in genes] == [("g.1", 9, 50)]
@@ -137,7 +144,10 @@ def test_gtf_without_gene_records_and_multi_parent(tmp_path):
     path = tmp_path / "genes.gtf.gz"
     with gzip.open(filename=path, mode="wt") as stream:
         stream.write(
-            'x\ts\tCDS\t20\t30\t.\t-\t0\tgene_id "g.1"; transcript_id "t.1";\nx\ts\texon\t10\t40\t.\t-\t.\tgene_id "g.1"; transcript_id "t.2";\n'
+            'x\ts\tCDS\t20\t30\t.\t-\t0\tgene_id "g.1"; '
+            'transcript_id "t.1";\n'
+            'x\ts\texon\t10\t40\t.\t-\t.\tgene_id "g.1"; '
+            'transcript_id "t.2";\n'
         )
     gene = read_annotation(path=path)[0]
     assert (gene.gene_id, gene.start, gene.end, gene.strand) == (

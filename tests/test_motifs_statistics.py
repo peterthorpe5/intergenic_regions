@@ -240,7 +240,8 @@ def test_pwm_reverse_palindrome_and_settings():
 def test_all_motif_formats(tmp_path):
     meme = tmp_path / "motifs.meme"
     meme.write_text(
-        "MEME version 4\nALPHABET= ACGT\nMOTIF x X\nletter-probability matrix: alength= 4 w= 2\n1 0 0 0\n0 1 0 0\n"
+        "MEME version 4\nALPHABET= ACGT\nMOTIF x X\n"
+        "letter-probability matrix: alength= 4 w= 2\n1 0 0 0\n0 1 0 0\n"
     )
     assert read_motifs(path=meme)[0].matrix == ((1, 0, 0, 0), (0, 1, 0, 0))
     jaspar = tmp_path / "motifs.jaspar"

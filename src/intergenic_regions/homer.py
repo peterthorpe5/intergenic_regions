@@ -109,7 +109,8 @@ def run_homer(
     resolved = shutil.which(cmd=executable)
     if not dry_run and resolved is None:
         raise FileNotFoundError(
-            "HOMER findMotifs.pl is not installed; install HOMER or use --dry-run"
+            "HOMER findMotifs.pl is not installed; "
+            "install HOMER or use --dry-run"
         )
     with output_bundle(path=output) as stage:
         results = stage / "results"

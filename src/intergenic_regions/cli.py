@@ -133,7 +133,10 @@ def build_parser() -> argparse.ArgumentParser:
         The root argument parser.
     """
     parser = argparse.ArgumentParser(
-        description="Strictly intergenic, strand-aware extraction and regulatory sequence analysis"
+        description=(
+            "Strictly intergenic, strand-aware extraction and "
+            "regulatory sequence analysis"
+        )
     )
     parser.add_argument(
         "--version",
@@ -332,8 +335,12 @@ def dispatch(*, args: argparse.Namespace) -> dict[str, Any]:
 
         return {
             "sources": CATALOGUE,
-            "catalogue_checked": "2026-10-01",
-            "note": "Preset datasets retain their documented build. Custom and plant tracks require explicit organism/assembly and a selected BED.",
+            "catalogue_version": "2026-10-01",
+            "note": (
+                "Preset datasets retain their documented build. Custom and "
+                "plant tracks require explicit organism/assembly and a "
+                "selected BED."
+            ),
         }
     output = args.output_dir
     if args.command == "extract":
@@ -420,7 +427,9 @@ def dispatch(*, args: argparse.Namespace) -> dict[str, Any]:
                 summary={"candidates": len(rows)},
                 tables={"Candidates": rows},
                 notes=[
-                    "Candidate scores are positive-class sequence signatures, not enhancer probabilities. Exact training duplicates are flagged."
+                    "Candidate scores are positive-class sequence signatures, "
+                    "not enhancer probabilities. Exact training duplicates "
+                    "are flagged."
                 ],
             )
         return {"candidates": len(rows)}
@@ -443,7 +452,8 @@ def dispatch(*, args: argparse.Namespace) -> dict[str, Any]:
                     "Regulatory reference overlaps": references,
                 },
                 notes=[
-                    "Linked gene-level evidence is distinct from experimental evidence on the extracted genomic interval."
+                    "Linked gene-level evidence is distinct from experimental "
+                    "evidence on the extracted genomic interval."
                 ],
             )
         return {"regions": len(evidence), "reference_queries": len(references)}
@@ -511,7 +521,8 @@ def main(*, argv: Sequence[str] | None = None) -> int:
         result = dispatch(args=args)
     except ImportError as exc:
         LOGGER.error(
-            "Analysis dependency missing; install intergenic-regions[analysis]: %s",
+            "Analysis dependency missing; install "
+            "intergenic-regions[analysis]: %s",
             exc,
         )
         return 2
