@@ -29,3 +29,16 @@ __pycache__
 
 #Ignore all Jython class files (present if using Jython)
 *.class
+
+# Python packaging, quality checks and generated analysis bundles
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+*.egg-info/
+build/
+dist/
+.venv/
+results/
