@@ -3,6 +3,19 @@
 **Strand-aware intergenic extraction, motif enrichment, automatic ML and
 transparent regulatory-candidate prioritisation.**
 
+**Project creator, original author and maintainer:**
+[Peter Thorpe (@peterthorpe5)](https://github.com/peterthorpe5).
+
+Peter Thorpe developed the original package, its biological concept and its
+strand-aware approach to extracting upstream and intergenic sequence while
+respecting neighbouring gene boundaries. He continues to lead the scientific
+design, development priorities and maintenance of this project.
+
+The version 1.0.0 overhaul was developed with AI assistance from OpenAI Codex
+for implementation, testing and documentation, under Peter Thorpe's direction.
+The original Git history is retained, preserving attribution for the earlier
+package and its development.
+
 This modern Python 3.11+ package replaces the script at master commit
 `c36293fc8f40117a8401a3e42aba255e172c914f` (4 September 2020).
 
@@ -315,4 +328,5 @@ and existing results are refused. Progress is logged to stderr and optional
 `--log-file`; summaries go to stdout as JSON. Exit codes: 0 success, 2 failed
 operation/input, 130 interrupted. A successful motif workflow may carry an
 explicitly unavailable model: inspect the model-status card and summary.
+
 
