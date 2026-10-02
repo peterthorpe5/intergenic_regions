@@ -380,6 +380,7 @@ def write_report(
     ai_summary = summary.get("ai") or summary
     shap_summary = ai_summary.get("shap") or {}
     scan_summary = summary.get("scan") or {}
+    regional_summary = summary.get("multiscale") or {}
     metrics = [
         (
             "Positive regions",
@@ -431,6 +432,29 @@ def write_report(
                 (
                     "Sequences explained",
                     shap_summary.get("explained_sequences", "—"),
+                ),
+            ]
+        )
+    if regional_summary:
+        if set(summary) == {"multiscale"}:
+            metrics = []
+        metrics.extend(
+            [
+                ("Multi-scale search", regional_summary.get("status", "—")),
+                (
+                    "Search lengths (bp)",
+                    ", ".join(
+                        str(n)
+                        for n in regional_summary.get("window_lengths", [])
+                    ),
+                ),
+                (
+                    "Regulatory search windows",
+                    regional_summary.get("total_windows", "—"),
+                ),
+                (
+                    "Candidate window unions",
+                    regional_summary.get("candidate_regions", "—"),
                 ),
             ]
         )
@@ -500,6 +524,8 @@ def write_report(
         category = (
             "SHAP · held-out model explanations"
             if image.stem.startswith("shap_")
+            else "Multi-scale regions · exploratory regulatory hypotheses"
+            if image.stem.startswith("region_")
             else "Genome scan · unvalidated sequence matches"
             if image.stem.startswith("genome_")
             else "Model performance and sequence signatures"

@@ -80,3 +80,22 @@ strict boundary behaviour and native discovery statistics are unchanged.
 Figures now provide embedded PNG/PDF downloads in HTML. TSV/BED/model links
 still require the companion output folder. New SHAP/scan TSVs are additional
 outputs; they do not change candidate uncertainty or evidence tiers.
+
+## Version 1.1.0 to 1.2.0
+
+Motif workflows now also run multi-scale region analysis automatically. Existing
+commands still work; `--no-regions` restores the earlier output scope. New
+results live in `regions/`. The original whole-flank candidate files, motif
+q-values and genome-screening interface retain their existing meanings.
+
+Window lengths are independent of `--kmer-lengths` and `--ai-kmer-lengths`.
+The default flank cap remains 1,000 bp: larger scales are unavailable unless
+you increase `--length` or select `--full-gap`. Neighbouring genes still limit
+all flanks. Short gaps are audited, without padding or genic extension.
+
+Activate your working Conda environment and reinstall:
+`python -m pip install --only-binary=:all: --editable '.[dev]'`.
+For a new environment, `conda env create --file environment.yml` installs
+compiled analysis dependencies through Conda. Historical schema-version-1
+whole-flank models continue to predict normally. New window models additionally
+check that prediction sequences match their recorded training length.

@@ -21,6 +21,10 @@ the relevant modules/workflows are used.
 | shap_reporting | shap_explanation, plot_shap (official SHAP plots) |
 | scanning | ScanMotif, read_scan_motifs, consensus_sites, genome_scan_outputs |
 | scan_reporting | plot_scan, scan_report |
+| windows | RegulatoryWindow, make_windows, assign_window_groups, merge_window_candidates |
+| window_learning | parent_window_weights, fit_window_model |
+| regional_analysis | window_motif_counts, window_position_profiles, regional_outputs |
+| window_reporting | plot_regional_results |
 | prioritisation | prioritise_candidates |
 | references | canonical_assembly, download_bed, import_reference, query_references |
 | homer | homer_command, run_homer |
@@ -112,3 +116,48 @@ imports require [motifs], direct learning imports [ml]. Workflow defaults attemp
 ML and report unavailable/not_estimable status explicitly when appropriate.
 Numerical explanations require [ml]; official SHAP graphics require [analysis].
 The root extraction API and CLI help remain usable without SHAP or NumPy.
+
+## Multi-scale regulatory windows
+
+`pipeline_workflow` and `enrichment_workflow` accept `use_regions=False` to opt
+out, otherwise they run regional search automatically. Configure it with
+`regional_settings={"lengths": [100, 200, 400, 800, 1600, 3200], "step": 50}`.
+Use `extraction_settings={"length": None}` for complete safe gaps, or supply
+a larger maximum length. Existing short-word lengths remain separate settings.
+
+```python
+from intergenic_regions.windows import make_windows, assign_window_groups
+from intergenic_regions.window_learning import fit_window_model
+
+windows, availability = make_windows(
+    positive=positive_sequences,
+    negative=negative_sequences,
+    lengths=[100, 200, 400, 800],
+    step=50,
+)
+groups = assign_window_groups(windows=windows)
+predictions, parents, metrics, summary, model, explanations = fit_window_model(
+    windows=[w for w in windows if w.width == 200],
+    parent_groups=groups,
+    lengths=[4, 5, 6],
+    folds=5,
+)
+```
+
+Supply matching `regions` and full `genes` to `make_windows` for exact genomic
+coordinates and signed annotated-start distances. FASTA-only windows retain
+oriented source offsets, with genomic coordinates/distance None. Too-short
+sources receive audit rows and no truncated windows. `assign_window_groups`
+unions optional parent-family groups and identical/reverse-complement windows
+across every requested scale. Partial homology still needs user grouping.
+
+`fit_window_model` fits exactly one scale, with parent/class-balanced weights
+and source-level fold metrics. Its six-value return includes numerical SHAP
+separately from the reusable model. It inherits source labels and is not a
+model trained on measured enhancer intervals. Its JSON is compatible with
+`predict_sequences`, which checks the additional `window_length` field.
+
+`regional_outputs` writes low-level results inside an existing staged output
+directory; public workflows provide atomic `output_bundle` publication.
+`merge_window_candidates` joins overlapping scored windows as exploratory
+unions. Neither their boundaries nor their peak scores have region-level FDR.

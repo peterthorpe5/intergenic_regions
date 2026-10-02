@@ -165,6 +165,98 @@ raw counts are also supplied. Contig/gene burden is descriptive, not normalised
 enrichment. Discovery-selected motifs/cohorts are reused and cannot establish
 independent validation. Every hit remains `unvalidated_sequence_match`.
 
+## Multi-scale candidate regulatory regions
+
+Motif width and regulatory-region length are different quantities. The default
+100, 200, 400, 800 and 1,600 bp windows are exploratory search scales, not an
+organism-independent distribution of enhancer sizes. Experimental fragment
+length affects measured activity: Klein et al. tested the same candidate
+elements at 192, 354 and 678 bp and found substantial context effects. A plant
+enhancer study examined 169 bp segments and found additive/cooperative,
+condition-dependent functional elements. Sequence features alone cannot reveal
+the unique functional boundary of an enhancer.
+
+Each scale tiles the existing transcription-oriented flank in complete windows.
+The step cannot exceed the shortest scale; a final end-aligned window covers
+remaining bases. No window is padded, shortened or extended beyond its parent.
+Availability is audited per source/scale. Genomic + windows map as
+`[parent.start + first, parent.start + end)`; − windows map as
+`[parent.end − end, parent.end − first)`. Their sequences are already oriented
+by extraction, so no second reverse-complement is applied. Signed distances
+use the midpoint base coordinate and the annotation's 5-prime base, matching
+the genome scanner's TSS-proxy convention. FASTA-only sources have no invented
+genomic coordinates or gene-start distances.
+
+The new per-scale model is weakly supervised: every window inherits its source
+flank's class. It does not receive labelled enhancer intervals. Separate models
+avoid applying the whole-flank model to a different-length distribution.
+Complete parent units are split before expanding indices to windows. Supplied
+gene/contig/homology groups are respected; groups are additionally unioned when
+any requested window is identical or reverse-complement identical across
+parents. These unions use every scale, without labels. They protect exact
+sharing, not partial homology or all repeated-sequence dependence.
+
+Training folds select words by **training-parent document frequency**, and fit
+composition scaling and classifier weights using training windows only. For
+P training parents, class l with n_l parents and parent j with m_j windows,
+each window has weight `P / (2 × n_l × m_j)`. Both classes receive equal total
+mass, every source within a class has equal mass and total mass equals P.
+This keeps regularisation independent of the overlapping-window count.
+Composition-only models use identical folds and weights. At least five parents
+per class and sufficient two-class independent folds are required at each
+scale. Other scales retain their results if a scale is not estimable.
+
+Validation averages held-out window scores within each parent before computing
+ROC AUC/AP, giving one observation per source at each scale. Eligible sources
+can differ between scales; inspect availability before comparing metrics.
+Window labels, mean scores and metrics do not validate individual enhancer
+sites. The global whole-flank permutation analysis continues to run as before;
+exploratory window scales do not receive extra permutation p-values or a
+best-scale significance claim. Search scales and triage thresholds are fixed
+inputs, without label-driven selection inside this method.
+
+Each scale's exact linear SHAP uses the parent-balanced **training-window**
+feature mean within that fold. Explained-window sampling is seeded and bounded;
+its importance describes those sampled windows and can depend on their
+distribution. Explanations reconstruct held-out logits and retain fold feature
+availability, with official plots in separate scale reports. Full-data models
+are exported for reuse, with a required prediction-window length. They do not
+provide the background or predictions used in reported held-out explanations.
+
+The fixed score cutoff defines a triage subset. Connected overlapping selected
+windows within one parent become a candidate union of variable length; touching
+windows stay separate. Union length, supporting scales, window count and peak
+window are retained. Connected unions can span a large part of a flank and
+their edges depend on the search settings. They are not estimated biological
+enhancer boundaries. Scores from different scales are not assumed calibrated
+against one another. Peak scores increase in opportunity with more searched
+positions/scales; no region-level p-value, q-value or FDR is assigned.
+
+Motif-density plots select positive-enriched motifs from the full source-level
+analysis. Known-motif density uses actual pattern/PWM sites from discovery;
+selected exact words are rescanned at their original strand convention.
+Physical duplicates on opposite strands count once per motif/position; sites
+must be fully contained within a window. Density divides by the full window
+span in kb. Ambiguity/composition are separate recorded covariates. Related
+motifs and overlapping sites can inflate counts and are not independent support.
+This descriptive display never supplies features to the held-out window model.
+It does not transfer source-level motif q-values to individual sites or regions.
+
+Position profiles average windows within source/scale/bin, then average across
+sources. Coverage and scored-source counts accompany means, with missing
+scores as NA. The configured distance limit clips only profiles/heatmaps;
+full window and candidate exports retain all positions. Locus plots show
+window-midpoint resemblance, descriptive density, candidate union spans and
+optional accessibility overlap, with a gene-start proxy axis when available.
+Context evidence is re-queried at window and union coordinates. Ranking retains
+the existing transparent evidence tiers, and every union remains unvalidated.
+
+Strict flanks cover an intergenic subset of possible regulatory locations.
+Distal elements beyond a blocker, intronic enhancers, cell-state specificity,
+motif spacing/cooperativity and experimentally determined enhancer-to-gene
+links require additional data or methods. Longer windows alone do not solve
+these limitations.
+
 ## Optional evidence and candidate triage
 
 BED evidence measures union overlap, preventing double counting. Missing tracks
@@ -192,6 +284,8 @@ linkage, tissue specificity or mechanism.
 - [HOMER FASTA-mode documentation](https://homer.ucsd.edu/homer/microarray/fasta.html)
 - [SHAP linear explainer](https://shap.readthedocs.io/en/latest/generated/shap.LinearExplainer.html)
 - [SHAP plotting API](https://shap.readthedocs.io/en/latest/api.html#plots)
+- [Klein et al. (2020), MPRA design and sequence-context dependencies](https://doi.org/10.1038/s41592-020-0965-y)
+- [Plant enhancer cooperation/additivity study (2024)](https://pmc.ncbi.nlm.nih.gov/articles/PMC11218779/)
 
 Our grouped permutation procedure is described above explicitly; it extends
 within-group shuffling to equal-sized pure groups and is not presented as

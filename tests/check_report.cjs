@@ -12,6 +12,7 @@ const {values} = parseArgs({options: {
   "browser-executable": {type: "string"},
   "chromium-module": {type: "string"},
   "with-shap-scan": {type: "boolean", default: false},
+  "with-multiscale": {type: "boolean", default: false},
 }});
 assert(values.report && values.screenshot && values["result-json"],
   "Use --report, --screenshot and --result-json");
@@ -67,6 +68,19 @@ assert(values.report && values.screenshot && values["result-json"],
       await page.setViewportSize({width: 1440, height: 1000});
       await page.goBack();
     }
+    if (values["with-multiscale"]) {
+      assert((await page.locator("img[alt^='region_']").count()) >= 6);
+      await page.getByRole("link", {name: "Multi-scale regulatory region report"}).click();
+      assert.equal(await page.locator("h1").textContent(),
+        "Multi-scale regulatory region search");
+      assert(await page.locator("figure img").evaluateAll((images) =>
+        images.every((image) => image.complete && image.naturalWidth > 0)));
+      await page.getByRole("link", {name: "100 bp SHAP report", exact: true}).click();
+      assert.equal(await page.locator("h1").textContent(), "100 bp search-window model");
+      assert.equal(await page.locator("img[alt^='shap_']").count(), 6);
+      await page.goBack();
+      await page.goBack();
+    }
     const search = page.locator("input[data-table]").first();
     const candidates = page.locator("#results-0 tbody tr");
     const initialRows = await candidates.count();
@@ -101,6 +115,10 @@ assert(values.report && values.screenshot && values["result-json"],
     if (values["with-shap-scan"]) {
       result.checks.push("six official SHAP plots", "five genome plots",
         "embedded PNG/PDF downloads", "PDF content", "linked scan report");
+    }
+    if (values["with-multiscale"]) {
+      result.checks.push("multi-scale figures", "linked region dashboard",
+        "linked scale model report", "six official window SHAP plots");
     }
     fs.writeFileSync(values["result-json"], JSON.stringify(result, null, 2));
     process.stdout.write(JSON.stringify(result) + "\n");

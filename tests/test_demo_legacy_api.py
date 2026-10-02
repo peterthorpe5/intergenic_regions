@@ -14,6 +14,57 @@ from intergenic_regions import (
 )
 from intergenic_regions.io import read_fasta, write_fasta
 
+
+def test_variable_length_synthetic_demo_keeps_both_strand_sequences(tmp_path):
+    module = runpy.run_path(path_name=str(ROOT / "examples/make_demo.py"))
+    path = tmp_path / "multiscale"
+    result = module["make_demo"](
+        output=path,
+        sequences_per_class=6,
+        flank_length=1000,
+        module_lengths=[120, 240, 480],
+        seed=31,
+    )
+    assert result["synthetic_module_lengths"] == [120, 240, 480]
+    expected = {
+        **read_fasta(path=path / "positive.fasta"),
+        **read_fasta(path=path / "negative.fasta"),
+    }
+    genes = read_annotation(path=path / "genes.gff3")
+    with Genome(path=path / "genome.fasta") as genome:
+        regions = extract_regions(
+            index=GeneIndex(genes=genes, lengths=genome.lengths),
+            genome=genome,
+            identifiers=list(expected),
+            length=None,
+        )
+    assert {r.gene_id: r.sequence for r in regions} == expected
+    assert all(len(r.sequence) == 1000 for r in regions)
+    assert (path / "synthetic_modules.tsv").is_file()
+    assert "GCACTG" in expected["negative_000"]
+    for settings in (
+        {"flank_length": 119},
+        {"module_lengths": [201]},
+        {"module_lengths": [True]},
+    ):
+        with pytest.raises(ValueError):
+            module["make_demo"](output=tmp_path / "invalid", **settings)
+    assert (
+        module["main"](
+            argv=[
+                "--output-dir",
+                str(tmp_path / "cli_multiscale"),
+                "--flank-length",
+                "500",
+                "--module-lengths",
+                "120",
+                "240",
+            ]
+        )
+        == 0
+    )
+
+
 ROOT = Path(__file__).resolve().parents[1]
 
 

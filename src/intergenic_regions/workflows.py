@@ -537,6 +537,8 @@ def enrichment_workflow(
     use_ai: bool = True,
     learning_settings: dict[str, Any] | None = None,
     groups_path: Path | None = None,
+    use_regions: bool = True,
+    regional_settings: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run native enrichment on supplied sequence sets.
 
@@ -550,6 +552,8 @@ def enrichment_workflow(
         use_ai: Run ML by default, independently of motif significance.
         learning_settings: Fixed model and validation settings.
         groups_path: Optional homology/chromosome group assignments.
+        use_regions: Run multi-scale regulatory search by default.
+        regional_settings: Candidate window and position-profile settings.
 
     Returns:
         Analysis summary.
@@ -598,6 +602,20 @@ def enrichment_workflow(
             else ("sequence_id", "priority_rank", "enhancer_status"),
         )
         summary["ai"] = ai_summary
+        from intergenic_regions.regional_analysis import regional_outputs
+
+        summary["multiscale"] = regional_outputs(
+            directory=stage / "regions",
+            positive=positive,
+            negative=negative,
+            motif_directory=stage,
+            enabled=use_regions,
+            use_ai=use_ai,
+            learning_settings=learning_settings,
+            groups_path=groups_path,
+            both_strands=(settings or {}).get("both_strands", True),
+            **(regional_settings or {}),
+        )
         write_json(path=stage / "summary.json", data=summary)
         analysis_report(
             directory=stage,
@@ -618,6 +636,8 @@ def enrichment_workflow(
                     "mask_lowercase": mask_lowercase,
                     "use_ai": use_ai,
                     "learning": learning_settings or {},
+                    "use_regions": use_regions,
+                    "regional_search": regional_settings or {},
                     **(settings or {}),
                 },
             ),
@@ -730,6 +750,7 @@ def analysis_report(
     images = sorted((motif_directory / "figures").glob("*.png"))
     images += sorted((directory / "ai" / "figures").glob("*.png"))
     images += sorted((directory / "genome_scan" / "figures").glob("*.png"))
+    images += sorted((directory / "regions" / "figures").glob("*.png"))
     shap_rows: list[dict[str, Any]] = []
     shap_path = directory / "ai" / "shap_importance.tsv"
     if shap_path.is_file():
@@ -752,6 +773,22 @@ def analysis_report(
         links["Gene-start distance profiles TSV"] = (
             "genome_scan/distance_profiles.tsv"
         )
+    region_tables: dict[str, list[dict[str, Any]]] = {}
+    if (directory / "regions" / "report.html").is_file():
+        links["Multi-scale regulatory region report"] = "regions/report.html"
+        links["Multi-scale window scores TSV"] = "regions/window_scores.tsv"
+        links["Candidate window unions TSV"] = "regions/candidate_regions.tsv"
+        links["Candidate window unions BED"] = "regions/candidate_regions.bed"
+        for name, filename in (
+            ("Multi-scale candidate window unions", "candidate_regions.tsv"),
+            ("Multi-scale availability audit", "window_availability.tsv"),
+        ):
+            with (directory / "regions" / filename).open(
+                encoding="utf-8"
+            ) as stream:
+                region_tables[name] = list(
+                    csv.DictReader(stream, delimiter="\t")
+                )
     write_report(
         path=directory / "report.html",
         title="Intergenic regulatory sequence analysis",
@@ -791,6 +828,7 @@ def analysis_report(
             ],
             "Held-out model validation": metrics,
             "Held-out SHAP feature importance": shap_rows,
+            **region_tables,
             **(extra_tables or {}),
         },
         images=images,
@@ -809,6 +847,12 @@ def analysis_report(
             "SHAP explains held-out model log-odds using each fold's training "
             "background. Correlated words can share or redistribute "
             "attribution; these explanations are not causal evidence.",
+            "Multi-scale windows are searched automatically within safe "
+            "flanks. Their labels are inherited from parents. Window unions "
+            "are exploratory regulatory hypotheses, with unestablished "
+            "enhancer boundaries and no region-level FDR. Inspect "
+            "availability "
+            "and source-level validation at every scale.",
         ],
     )
 
@@ -1026,6 +1070,8 @@ def pipeline_workflow(
     evidence_settings: dict[str, Any] | None = None,
     scan_genome: bool = False,
     scan_settings: dict[str, Any] | None = None,
+    use_regions: bool = True,
+    regional_settings: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run gene-list extraction, leakage filtering, enrichment and optional AI.
 
@@ -1047,6 +1093,8 @@ def pipeline_workflow(
         evidence_settings: Optional experimental/reference evidence.
         scan_genome: Screen positively enriched consensuses across the genome.
         scan_settings: Screen selection, substitution and profile limits.
+        use_regions: Run multi-scale candidate search by default.
+        regional_settings: Candidate window and position-profile settings.
 
     Returns:
         Integrated workflow summary.
@@ -1134,6 +1182,28 @@ def pipeline_workflow(
             groups_path=groups_path,
             groups=groups,
         )
+        from intergenic_regions.regional_analysis import regional_outputs
+
+        regional_summary = regional_outputs(
+            directory=stage / "regions",
+            positive=positive_records,
+            negative=negative_records,
+            motif_directory=stage / "motifs",
+            enabled=use_regions,
+            use_ai=use_ai,
+            learning_settings=learning_settings,
+            groups_path=groups_path,
+            parent_groups=dict(
+                zip(
+                    [*positive_records, *negative_records], groups, strict=True
+                )
+            ),
+            regions=retained,
+            genes=genes,
+            evidence_settings=evidence_settings,
+            both_strands=(enrichment_settings or {}).get("both_strands", True),
+            **(regional_settings or {}),
+        )
         evidence_by_id = {r["sequence_id"]: r for r in evidence}
         prediction_by_id = {r["sequence_id"]: r for r in predictions}
         candidate_rows: list[dict[str, Any]] = []
@@ -1179,6 +1249,7 @@ def pipeline_workflow(
             "matched_background": matching_settings is not None,
             "motifs": native,
             "ai": ai_summary,
+            "multiscale": regional_summary,
             "optional_evidence_supplied": any(
                 (evidence_settings or {}).get(k)
                 for k in (
@@ -1226,6 +1297,8 @@ def pipeline_workflow(
             "evidence": serialise_settings(settings=evidence_settings or {}),
             "scan_genome": scan_genome,
             "scan": scan_settings or {},
+            "use_regions": use_regions,
+            "regional_search": regional_settings or {},
         }
         write_json(
             path=stage / "manifest.json",

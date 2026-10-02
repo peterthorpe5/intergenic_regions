@@ -134,6 +134,34 @@ def add_learning_options(*, parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--shap-max-features", type=int, default=20)
 
 
+def add_region_options(*, parser: argparse.ArgumentParser) -> None:
+    """Add automatic multi-scale regulatory window search settings.
+
+    Args:
+        parser: Motif-analysis command parser.
+    """
+    parser.add_argument(
+        "--no-regions",
+        action="store_true",
+        help="Disable automatic multi-scale regulatory region search",
+    )
+    parser.add_argument(
+        "--region-lengths",
+        type=int,
+        nargs="+",
+        default=[100, 200, 400, 800, 1600],
+        help="Candidate window lengths, distinct from short motif lengths",
+    )
+    parser.add_argument("--region-step", type=int, default=50)
+    parser.add_argument("--region-max-windows", type=int, default=50000)
+    parser.add_argument("--region-score-threshold", type=float, default=0.75)
+    parser.add_argument("--region-max-motifs", type=int, default=20)
+    parser.add_argument("--region-motif-q-value", type=float, default=0.05)
+    parser.add_argument("--region-position-bin-width", type=int, default=100)
+    parser.add_argument("--region-position-limit", type=int, default=5000)
+    parser.add_argument("--region-max-locus-plots", type=int, default=6)
+
+
 def add_scan_options(*, parser: argparse.ArgumentParser) -> None:
     """Add explicit consensus-screen and gene-start profile settings.
 
@@ -268,6 +296,7 @@ def build_parser() -> argparse.ArgumentParser:
         )
     for name in ("enrich", "pipeline"):
         add_motif_options(parser=commands[name])
+        add_region_options(parser=commands[name])
     commands["enrich"].add_argument("--mask-lowercase", action="store_true")
     for name in ("ai", "pipeline", "enrich"):
         add_learning_options(parser=commands[name])
@@ -405,6 +434,28 @@ def scan_options(*, args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def region_options(*, args: argparse.Namespace) -> dict[str, Any]:
+    """Translate candidate-window flags into multi-scale search settings.
+
+    Args:
+        args: Parsed command options.
+
+    Returns:
+        Window-generation, triage and reporting keyword arguments.
+    """
+    return {
+        "lengths": args.region_lengths,
+        "step": args.region_step,
+        "max_windows": args.region_max_windows,
+        "score_threshold": args.region_score_threshold,
+        "max_motifs": args.region_max_motifs,
+        "motif_q_value": args.region_motif_q_value,
+        "position_bin_width": args.region_position_bin_width,
+        "position_limit": args.region_position_limit,
+        "max_locus_plots": args.region_max_locus_plots,
+    }
+
+
 def dispatch(*, args: argparse.Namespace) -> dict[str, Any]:
     """Execute a parsed command.
 
@@ -468,6 +519,8 @@ def dispatch(*, args: argparse.Namespace) -> dict[str, Any]:
             evidence_settings=evidence_options(args=args),
             scan_genome=args.scan_genome,
             scan_settings=scan_options(args=args),
+            use_regions=not args.no_regions,
+            regional_settings=region_options(args=args),
         )
     if args.command == "enrich":
         return enrichment_workflow(
@@ -480,6 +533,8 @@ def dispatch(*, args: argparse.Namespace) -> dict[str, Any]:
             use_ai=args.ai,
             learning_settings=learning_options(args=args),
             groups_path=args.groups_tsv,
+            use_regions=not args.no_regions,
+            regional_settings=region_options(args=args),
         )
     if args.command == "ai":
         return learning_workflow(

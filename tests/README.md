@@ -14,6 +14,8 @@ The suite uses small deterministic datasets and no mandatory network calls.
 | test_learning.py | Fold-only vocabulary/scaling, grouped splits, null labels, permutations, inert model schema and prediction |
 | test_shap_explanations.py | Agreement with official LinearExplainer, fold backgrounds, subsampling, additive reconstruction, official PNG/PDF plots and missing plotting dependency |
 | test_genome_scanning.py | Brute-force matching property oracle, substitutions/IUPAC/strands, chunk boundaries, intergenic blockers, signed distances, tied starts, denominator heatmaps, hit caps and atomic outputs |
+| test_regulatory_windows.py | Multi-scale coverage property oracle, original direction-aware boundaries, reverse-complement coordinates, availability, shared-window groups, motif containment, variable unions and parent-weighted position profiles |
+| test_window_learning_reporting.py | Parent/class training weights, source/family-held-out validation, parent-only vocabulary selection, SHAP reconstruction, fixed-width model reuse, local evidence, automatic CLI integration, missing dependencies and plots |
 | test_automatic_ml_prioritisation.py | Automatic ML defaults, unsupported data, transparent ranks, uncertainty and HTML interactivity |
 | test_workflows_cli_reporting.py | Focused workflows, plots, escaping, option handling, failures and end-to-end subprocess analysis |
 | test_references_homer.py | Reference build/checksum validation, controlled downloads, HOMER arguments/errors/timeouts |

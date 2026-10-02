@@ -211,6 +211,7 @@ def fit_classifier(
     labels: NDArray[np.int64],
     seed: int,
     regularisation: float = 1.0,
+    sample_weight: NDArray[np.float64] | None = None,
 ) -> LogisticRegression:
     """Fit a fixed, regularised, class-balanced logistic sequence model.
 
@@ -219,6 +220,8 @@ def fit_classifier(
         labels: Training labels.
         seed: Random seed.
         regularisation: Inverse L2 regularisation strength C.
+        sample_weight: Optional positive weights including class balancing.
+            Supplied weights replace automatic row-level class balancing.
 
     Returns:
         A converged classifier.
@@ -228,14 +231,22 @@ def fit_classifier(
     """
     if regularisation <= 0 or not math.isfinite(regularisation):
         raise ValueError("Regularisation C must be finite and positive")
+    if sample_weight is not None and (
+        sample_weight.shape != labels.shape
+        or not np.isfinite(sample_weight).all()
+        or (sample_weight <= 0).any()
+    ):
+        raise ValueError(
+            "Classifier sample weights must be finite and positive"
+        )
     model = LogisticRegression(
         C=regularisation,
-        class_weight="balanced",
+        class_weight="balanced" if sample_weight is None else None,
         solver="liblinear",
         max_iter=2000,
         random_state=seed,
     )
-    model.fit(X=matrix, y=labels)
+    model.fit(X=matrix, y=labels, sample_weight=sample_weight)
     if int(np.max(model.n_iter_)) >= model.max_iter:
         raise ValueError("Sequence classifier failed to converge")
     return model
@@ -699,6 +710,16 @@ def predict_sequences(
             )
     except (KeyError, TypeError, OverflowError) as exc:
         raise ValueError("Malformed sequence-model JSON") from exc
+    width = model.get("window_length")
+    if width is not None and (
+        not isinstance(width, int)
+        or isinstance(width, bool)
+        or not 20 <= width <= 100000
+        or any(len(sequence) != width for sequence in sequences.values())
+    ):
+        raise ValueError(
+            "Window models require complete sequences at their training length"
+        )
     counters = [
         kmer_counts(sequence=s, lengths=lengths) for s in sequences.values()
     ]

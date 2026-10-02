@@ -1,7 +1,7 @@
 # Intergenic regions
 
-**Strand-aware intergenic extraction, motif enrichment, automatic ML with
-SHAP explanations, genome-wide motif screening and offline visual reports.**
+**Strand-aware intergenic extraction, motif enrichment, multi-scale regulatory
+region search, automatic ML with SHAP, genome motif screening and HTML reports.**
 
 **Project creator, original author and maintainer:**
 [Peter Thorpe (@peterthorpe5)](https://github.com/peterthorpe5).
@@ -17,6 +17,8 @@ The original Git history is retained, preserving attribution for the earlier
 package and its development.
 The version 1.1.0 SHAP and genome-screening upgrade continues this work under
 Peter Thorpe's scientific direction, with AI-assisted implementation and testing.
+Version 1.2.0 adds the multi-scale search proposed by Peter Thorpe to distinguish
+short motif patterns from larger, variable-length candidate regulatory regions.
 
 This modern Python 3.11+ package replaces the script at master commit
 `c36293fc8f40117a8401a3e42aba255e172c914f` (4 September 2020).
@@ -31,6 +33,9 @@ and unavailable flanks receive explicit exclusion records.
 
 ### using conda:
 
+Alternatively, create the same analysis environment from the supplied file:
+`conda env create --file environment.yml`. For an existing working environment,
+activate it and use the pip install/check commands below.
 
 ```bash
 mamba create -n intergenic_regions \
@@ -38,7 +43,7 @@ mamba create -n intergenic_regions \
   --strict-channel-priority \
   python=3.11 pip \
   numpy=1.26.4 scipy=1.13.1 matplotlib=3.9.2 \
-  scikit-learn=1.5.2 shap=0.48 \
+  scikit-learn=1.5.2 shap=0.49.1 \
   numba=0.61.2 llvmlite=0.44.0 \
   -y
 ```
@@ -65,12 +70,12 @@ python -m build
 ```
 
 
-### From a checkout of this overhaul:
+### Other Python environments with binary wheels
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install --editable '.[analysis]'
+python -m pip install --only-binary=:all: --editable '.[analysis]'
 python -m intergenic_regions --help
 ```
 
@@ -116,6 +121,87 @@ malformed grouping files still fail.
 explicitly disables explanations without disabling ML. Without the SHAP plotting
 dependency, exact numerical explanations are retained and plot status explains
 how to install `[analysis]`.
+
+## Enhancer-sized regions: search multiple lengths
+
+A transcription-factor motif and an enhancer are different analysis units.
+Short words describe local sequence patterns; larger regions can contain several
+sites, their spacing and surrounding context. There is no universal enhancer
+length. In a human MPRA study, testing the same candidate elements at **192,
+354 and 678 bp** gave substantial activity differences. A plant study found
+activity in **169 bp** segments and context-dependent cooperation between their
+functional elements. These are experimental examples, not universal boundaries
+([Klein et al., 2020](https://doi.org/10.1038/s41592-020-0965-y);
+[Plant enhancer study, 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11218779/)).
+
+**`pipeline` and `enrich` now search overlapping 100, 200, 400, 800 and 1,600 bp
+windows automatically**, stepping by 50 bp. Configure other lengths, including
+larger ones, without turning a whole enhancer into an exact long k-mer:
+
+```bash
+python -m intergenic_regions pipeline \
+  --genome genome.fasta \
+  --annotation genes.gff3 \
+  --positive-genes positive.txt \
+  --negative-genes negative.txt \
+  --full-gap \
+  --kmer-lengths 4 6 8 \
+  --region-lengths 100 200 400 800 1600 3200 \
+  --region-step 50 \
+  --accessibility-bed tissue_atac_peaks.bed \
+  --output-dir results/multiscale
+```
+
+Omit `--accessibility-bed` for a complete sequence-only run. `--length 5000`
+can replace `--full-gap` to set a maximum search extent. The extraction default
+is still 1,000 bp: scales larger than a retained flank are marked unavailable.
+Every window stays inside the original free flank, including on the negative
+strand. End-aligned windows cover the last bases; short gaps are audited without
+padding or silently shortening a requested scale.
+
+| Setting | Meaning |
+| --- | --- |
+| `--kmer-lengths 4 6 8` | Short exact patterns tested for source-level enrichment |
+| `--ai-kmer-lengths 4 5 6` | Short word features used by the models |
+| `--region-lengths 100 200 400 800 1600` | Larger candidate search windows |
+| `--length 5000` / `--full-gap` | Extent of the strictly intergenic source flank |
+
+Each available scale gets its own window model automatically. Whole source
+flanks, supplied families/contigs and exact shared windows stay together during
+validation. Training weights give each source equal mass within its class;
+reported ROC/AP use one mean held-out score per source. Window labels are
+inherited from gene/flank labels, so this evaluates **class resemblance**, not
+experimentally validated enhancer detection. Each scale also supplies exact
+held-out SHAP tables and, when installed, official SHAP plots.
+
+Above-threshold overlapping windows form variable-length **candidate unions**.
+The default `--region-score-threshold 0.75` is an exploratory triage setting,
+not an enhancer probability or significance threshold. Scale scores are not
+assumed to share calibration. Searching more windows gives more chances for a
+high peak; the unions have **no region-level q-value**, and their edges are not
+measured enhancer boundaries. All candidates remain `unvalidated_candidate`.
+
+The HTML includes scale availability, source-level validation, window-length
+versus gene-start-distance heatmaps, motif density, position coverage, candidate
+span distributions and individual locus views with optional accessibility
+overlap. Signed gene-start distances use the annotation's 5′ base as a TSS
+proxy; FASTA-only `enrich` uses oriented sequence offsets. See
+`regions/report.html`, `regions/window_scores.tsv`, `regions/candidate_regions.tsv`,
+`regions/candidate_regions.bed` and `regions/candidate_regions.fasta`.
+
+Use `--no-regions` to disable this layer explicitly. `--no-ml` keeps the window
+availability and motif-density analysis while leaving model scores empty;
+`--no-shap` disables explanations. Limits include `--region-max-windows 50000`,
+`--region-max-locus-plots 6` and a configurable profile distance range.
+Larger searches that exceed the window limit fail with guidance; increase the
+step, restrict the input or intentionally raise the limit. Short-word models
+still lack explicit motif-spacing/cooperativity features. Regulatory activity,
+enhancer-to-gene linkage and functional boundaries require independent evidence.
+
+The regional search covers extracted intergenic flanks or supplied FASTA.
+The genome-screening command continues to locate motif sites across the genome.
+Enhancers within genes or beyond an intervening gene are outside a contiguous
+strictly intergenic flank, even when `--full-gap` is used.
 
 Accessibility, regulatory annotations and functional evidence are optional:
 
@@ -459,4 +545,3 @@ and existing results are refused. Progress is logged to stderr and optional
 `--log-file`; summaries go to stdout as JSON. Exit codes: 0 success, 2 failed
 operation/input, 130 interrupted. A successful motif workflow may carry an
 explicitly unavailable model: inspect the model-status card and summary.
-
