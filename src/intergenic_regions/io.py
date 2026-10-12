@@ -231,6 +231,9 @@ def provenance(
         "matplotlib",
         "scikit-learn",
         "shap",
+        "pysam",
+        "pydeseq2",
+        "pandas",
     ):
         try:
             packages[name] = version(distribution_name=name)

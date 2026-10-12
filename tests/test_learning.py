@@ -97,6 +97,25 @@ def test_permutations_preserve_exchangeability_blocks():
     ) == {0, 1}
 
 
+def test_singleton_groups_use_exact_stratification_across_permutations():
+    rng = np.random.default_rng(seed=42)
+    labels = np.asarray([1] * 12 + [0] * 12, dtype=np.int64)
+    groups = [f"independent_gene_{i}" for i in range(len(labels))]
+    for _ in range(100):
+        permuted = permute_labels(labels=labels, groups=groups, rng=rng)
+        grouped = validation_splits(
+            labels=permuted, folds=5, seed=42, groups=groups
+        )
+        independent = validation_splits(labels=permuted, folds=5, seed=42)
+        for (train, test), (expected_train, expected_test) in zip(
+            grouped, independent, strict=True
+        ):
+            np.testing.assert_array_equal(train, expected_train)
+            np.testing.assert_array_equal(test, expected_test)
+            assert set(permuted[test]) == {0, 1}
+            assert not {groups[i] for i in train} & {groups[i] for i in test}
+
+
 def test_classifier_errors():
     with pytest.raises(ValueError):
         fit_classifier(

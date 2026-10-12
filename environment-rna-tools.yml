@@ -1,0 +1,9 @@
+name: intergenic_regions_rna_tools
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - star=2.7.11b
+  - samtools>=1.20,<2
+  - subread=2.1.1

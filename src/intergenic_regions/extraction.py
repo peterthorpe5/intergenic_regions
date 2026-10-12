@@ -75,6 +75,26 @@ class GeneIndex:
             contig: [s for s, _ in spans]
             for contig, spans in self.spans.items()
         }
+        ordered: dict[str, list[tuple[int, int, str]]] = defaultdict(list)
+        for gene in genes:
+            ordered[gene.contig].append((gene.start, gene.end, gene.gene_id))
+        self._gene_starts = {
+            contig: sorted(spans) for contig, spans in ordered.items()
+        }
+        self._gene_ends = {
+            contig: sorted(
+                (end, start, identifier) for start, end, identifier in spans
+            )
+            for contig, spans in self._gene_starts.items()
+        }
+        self._gene_start_values = {
+            contig: [start for start, _, _ in spans]
+            for contig, spans in self._gene_starts.items()
+        }
+        self._gene_end_values = {
+            contig: [end for end, _, _ in spans]
+            for contig, spans in self._gene_ends.items()
+        }
 
     def free_flank(
         self, *, gene: Gene, direction: str

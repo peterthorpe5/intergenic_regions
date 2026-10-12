@@ -1,5 +1,56 @@
 # Python API
 
+## RNA-seq interfaces
+
+The RNA layer is imported explicitly from `rna_inputs`, `rna_starts`,
+`rna_expression`, `rna_tools`, `rna_reporting` and `rna_workflows` so extraction
+does not load pysam, PyDESeq2 or numerical/ML libraries. Public interfaces use
+named arguments and Google-style docstrings, with pytest checks for success and
+defensive failure cases.
+
+```python
+from pathlib import Path
+from intergenic_regions.rna_workflows import rna_pipeline_workflow
+
+summary = rna_pipeline_workflow(
+    samples_path=Path("samples.tsv"),
+    genome_path=Path("genome.fasta"),
+    annotation_path=Path("genes.gff3"),
+    positive_genes=Path("curated_positive.txt"),
+    negative_genes=Path("curated_negative.txt"),
+    condition="treatment",
+    output=Path("results/rna_curated"),
+    pipeline_settings={
+        "enrichment_settings": {"kmer_lengths": [4, 6, 8]},
+        "extraction_settings": {"length": None},
+    },
+)
+```
+
+`reference` and `counts_path`, `de_path`, or `run_de=True` add DE context while
+preserving both supplied gene lists. Without lists, declared DE thresholds
+generate both classes. Existing motif/ML/SHAP/multi-scale/evidence/scan settings
+are passed using `pipeline_settings`. Defaults run sequence ML, SHAP and
+multi-scale analysis. RNA label-defining quantities are not predictor features.
+
+| Module | Public entry points |
+| --- | --- |
+| rna_inputs | `RnaSample`, `read_rna_samples`, `read_gene_exons`, `read_bedgraph`, `alignment_transcript_strand`, `CoverageReader`, `open_rna_coverage` |
+| rna_starts | `rna_search_interval`, `detect_coverage_start`, `consensus_rna_starts`, `compare_rna_starts`, `extract_rna_upstream` |
+| rna_expression | `read_count_matrix`, `read_de_results`, `differential_expression`, `select_de_gene_sets` |
+| rna_tools | `inspect_fastq`, `plan_rna_mapping`, `map_rna_reads`, `count_rna_genes` |
+| rna_reporting | `rna_motif_profiles`, `plot_rna_results` |
+| rna_workflows | `rna_input_paths`, `rna_start_outputs`, `rna_starts_workflow`, `rna_de_workflow`, `rna_mapping_workflow`, `rna_pipeline_workflow` |
+| rna_cli | `add_rna_start_options`, `rna_start_options`, `add_rna_commands`, `dispatch_rna` |
+
+Low-level output functions expect a staged directory owned by the caller.
+Workflow functions publish new directories atomically and refuse overwrites.
+`open_rna_coverage` owns alignment closure across exceptions. Metadata/layout,
+coordinates, source conflicts, biological replication, resource caps and
+unestimable designs fail with actionable errors. Candidate edges remain
+unvalidated and never authorise DNA extraction inside any genic interval.
+See [RNASEQ.md](RNASEQ.md) for input schema and scientific contracts.
+
 Project-defined functions use keyword-only arguments, type annotations and
 Google-style docstrings. Paths are pathlib.Path objects. Data model constructors
 also use named arguments. Sequence analysis dependencies are imported only when
