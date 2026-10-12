@@ -1,5 +1,26 @@
 # Verification
 
+RNA regressions cover manifest/source validation, unordered multi-parent exons,
+GTF/TSV fallbacks, positive/negative library conventions, skipped introns,
+deletions, paired overlap and read groups, indexed/reference-matched BAMs,
+bounded bedGraph access, sustained edges, singleton/discordant replicate
+uncertainty and the strongest non-chained consensus cluster.
+
+Plus/minus candidate anchors are checked against exact genomic intervals,
+reverse complements and every original gene blocker. Starts inside target UTRs
+or beyond neighbours must fall back or be excluded. Curated trimmed lists run
+without DE; contradicting imported DE cannot relabel them. Real PyDESeq2 tests
+check planted effects, NA controls, raw counts and estimable designs. Actual
+motif-centre opportunity denominators and anchor sources protect distance plots.
+
+The optional integration test runs real STAR, samtools and featureCounts on
+splice-aware synthetic reads, with curated labels and DE. It skips when those
+external tools are absent; CI includes a separate external-tool job. The main
+Python suite needs `[dev]`, which now includes RNA/DE extras. Use
+`environment-rnaseq.yml` for Conda, followed by pip installation of `[dev]`.
+Browser checks support `--with-rna` alongside existing SHAP/scan/multi-scale
+checks, verifying offline plots, notes, downloads, report links and mobile layout.
+
 Run pytest from the repository root after installing .[dev].
 The suite uses small deterministic datasets and no mandatory network calls.
 

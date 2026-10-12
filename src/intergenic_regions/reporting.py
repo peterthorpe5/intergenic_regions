@@ -360,6 +360,7 @@ def write_report(
     images: Sequence[Path] = (),
     notes: Sequence[str] = (),
     links: Mapping[str, str] | None = None,
+    figure_notes: Mapping[str, str] | None = None,
 ) -> None:
     """Write a self-contained HTML report with escaped user-supplied content.
 
@@ -371,6 +372,7 @@ def write_report(
         images: PNG files embedded directly in the report.
         notes: Interpretation and method notes.
         links: Named companion files, using relative paths or HTTPS URLs.
+        figure_notes: Expandable interpretation text keyed by image stem.
 
     Raises:
         ValueError: A supplied link uses an unsafe URL scheme.
@@ -381,6 +383,7 @@ def write_report(
     shap_summary = ai_summary.get("shap") or {}
     scan_summary = summary.get("scan") or {}
     regional_summary = summary.get("multiscale") or {}
+    rna_summary = summary.get("rna") or {}
     metrics = [
         (
             "Positive regions",
@@ -480,6 +483,35 @@ def write_report(
                 ),
             ]
         )
+    if rna_summary:
+        if set(summary) == {"rna"}:
+            metrics = []
+        metrics.extend(
+            [
+                (
+                    "RNA biological samples",
+                    rna_summary.get("biological_samples", "—"),
+                ),
+                (
+                    "Genes with RNA coverage search",
+                    rna_summary.get("searched_genes", "—"),
+                ),
+                (
+                    "Supported gene-condition starts",
+                    rna_summary.get("supported_gene_conditions", "—"),
+                ),
+                (
+                    "Safely applied RNA anchors",
+                    rna_summary.get("applied_rna_anchors", "—"),
+                ),
+                (
+                    "DE analysis",
+                    (rna_summary.get("de") or {}).get(
+                        "status", "not supplied"
+                    ),
+                ),
+            ]
+        )
     body = [
         "<header><p class='eyebrow'>INTERGENIC REGIONS · RESULTS</p>",
         f"<h1>{escape(title)}</h1>",
@@ -522,7 +554,9 @@ def write_report(
     previous_category = ""
     for image in images:
         category = (
-            "SHAP · held-out model explanations"
+            "RNA evidence · candidate starts and gene expression"
+            if image.stem.startswith("rna_")
+            else "SHAP · held-out model explanations"
             if image.stem.startswith("shap_")
             else "Multi-scale regions · exploratory regulatory hypotheses"
             if image.stem.startswith("region_")
@@ -552,11 +586,29 @@ def write_report(
                 f"download='{escape(pdf.name, quote=True)}'>Download PDF</a>"
             )
         figure_links += "</div>"
+        explanation = (figure_notes or {}).get(image.stem)
+        if explanation is None and image.stem.startswith("rna_locus_"):
+            explanation = (
+                "Thin curves are biological-sample depth profiles; thick curv"
+                "es are condition means after recorded sample divisors. Point"
+                "s and horizontal ranges show independently detected candidat"
+                "e starts and resolution neighbourhoods. The dashed line mark"
+                "s the annotated gene boundary. Missing calls stay missing; t"
+                "hese are unvalidated coverage edges."
+            )
+        interpretation = (
+            (
+                "<details><summary>How to interpret this figure</summary>"
+                f"<p>{escape(explanation)}</p></details>"
+            )
+            if explanation
+            else ""
+        )
         body.append(
             f'<figure><img alt="{escape(image.stem)}" '
             f'src="data:image/png;base64,{encoded}"><figcaption>'
             f"{escape(image.stem.replace('_', ' '))}"
-            f"</figcaption>{figure_links}</figure>"
+            f"</figcaption>{interpretation}{figure_links}</figure>"
         )
     if previous_category:
         body.append("</div>")

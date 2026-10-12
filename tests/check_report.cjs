@@ -13,6 +13,7 @@ const {values} = parseArgs({options: {
   "chromium-module": {type: "string"},
   "with-shap-scan": {type: "boolean", default: false},
   "with-multiscale": {type: "boolean", default: false},
+  "with-rna": {type: "boolean", default: false},
 }});
 assert(values.report && values.screenshot && values["result-json"],
   "Use --report, --screenshot and --result-json");
@@ -81,10 +82,25 @@ assert(values.report && values.screenshot && values["result-json"],
       await page.goBack();
       await page.goBack();
     }
+    if (values["with-rna"]) {
+      assert((await page.locator("img[alt^='rna_']").count()) >= 6);
+      assert((await page.locator("figure details").count()) >= 6);
+      await page.getByRole("link", {name: "RNA evidence report", exact: true}).click();
+      assert.equal(await page.locator("h1").textContent(),
+        "RNA evidence · candidate starts and upstream motifs");
+      assert(await page.locator("figure img").evaluateAll((images) =>
+        images.every((image) => image.complete && image.naturalWidth > 0)));
+      assert((await page.locator("details").count()) >= 6);
+      await page.setViewportSize({width: 390, height: 844});
+      assert(await page.evaluate(() =>
+        document.documentElement.scrollWidth <= window.innerWidth + 1));
+      await page.setViewportSize({width: 1440, height: 1000});
+      await page.goBack();
+    }
     const search = page.locator("input[data-table]").first();
     const candidates = page.locator("#results-0 tbody tr");
     const initialRows = await candidates.count();
-    await search.fill("positive_000");
+    await search.fill(values["with-rna"] ? "positive_001" : "positive_000");
     assert.equal(await page.locator("#results-0 tbody tr:visible").count(), 1);
     await search.fill("this_identifier_does_not_exist");
     assert.equal(await page.locator("#results-0 tbody tr:visible").count(), 0);
@@ -119,6 +135,10 @@ assert(values.report && values.screenshot && values["result-json"],
     if (values["with-multiscale"]) {
       result.checks.push("multi-scale figures", "linked region dashboard",
         "linked scale model report", "six official window SHAP plots");
+    }
+    if (values["with-rna"]) {
+      result.checks.push("RNA figures and interpretation notes",
+        "linked RNA dashboard", "RNA report mobile layout");
     }
     fs.writeFileSync(values["result-json"], JSON.stringify(result, null, 2));
     process.stdout.write(JSON.stringify(result) + "\n");

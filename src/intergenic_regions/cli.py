@@ -206,6 +206,9 @@ def build_parser() -> argparse.ArgumentParser:
         version=f"intergenic-regions {__version__}",
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
+    from intergenic_regions.rna_cli import add_rna_commands
+
+    add_rna_commands(subcommands=subcommands)
     commands: dict[str, argparse.ArgumentParser] = {}
     for name, help_text in (
         ("extract", "Extract strictly intergenic flanks"),
@@ -468,6 +471,10 @@ def dispatch(*, args: argparse.Namespace) -> dict[str, Any]:
     Raises:
         ValueError: Input data or analysis settings are invalid.
     """
+    if args.command.startswith("rna-"):
+        from intergenic_regions.rna_cli import dispatch_rna
+
+        return dispatch_rna(args=args)
     if args.command == "references":
         from intergenic_regions.references import CATALOGUE
 

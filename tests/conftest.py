@@ -1,11 +1,27 @@
 """Small deterministic datasets for biological and complete-workflow tests."""
 
 import random
+import runpy
 from pathlib import Path
 
 import pytest
 
 from intergenic_regions.io import write_fasta
+
+
+@pytest.fixture(scope="session")
+def rna_dataset(*, tmp_path_factory):
+    """Build ideal coverage/count/read fixtures with explicit planted truth."""
+    directory = tmp_path_factory.mktemp("rna") / "inputs"
+    module = runpy.run_path(
+        path_name=str(
+            Path(__file__).resolve().parents[1]
+            / "examples"
+            / "make_rna_demo.py"
+        )
+    )
+    module["make_rna_demo"](directory=directory, write_reads=True)
+    return directory
 
 
 @pytest.fixture

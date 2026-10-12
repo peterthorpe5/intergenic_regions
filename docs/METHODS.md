@@ -275,6 +275,18 @@ Every candidate remains unvalidated. A high score, motif enrichment, accessibili
 or catalogue overlap alone does not establish enhancer activity, enhancer-to-gene
 linkage, tissue specificity or mechanism.
 
+## RNA-seq integration
+
+Curated positive and negative gene lists are first-class inputs. The optional
+RNA layer adds independently called spatial coverage edges, replicate agreement,
+safe upstream anchors and raw-count DE context without changing curated labels.
+Both classes use one declared anchor condition. Supported edges inside the
+original free gap can refine extraction; starts inside annotations or beyond
+blockers use explicit fallback/exclusion. Negative DNA remains reverse-complemented.
+RNA edges do not validate TSSs, promoters or enhancers. See
+[RNA methods and limitations](RNASEQ.md) for the complete scientific contract,
+count/mapping conventions, model leakage safeguards and motif-distance denominators.
+
 ## Primary documentation
 
 - [Sequence Ontology GFF3 specification](https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md)

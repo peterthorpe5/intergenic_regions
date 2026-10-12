@@ -751,6 +751,7 @@ def analysis_report(
     images += sorted((directory / "ai" / "figures").glob("*.png"))
     images += sorted((directory / "genome_scan" / "figures").glob("*.png"))
     images += sorted((directory / "regions" / "figures").glob("*.png"))
+    images += sorted((directory / "rna" / "figures").glob("*.png"))
     shap_rows: list[dict[str, Any]] = []
     shap_path = directory / "ai" / "shap_importance.tsv"
     if shap_path.is_file():
@@ -789,6 +790,56 @@ def analysis_report(
                 region_tables[name] = list(
                     csv.DictReader(stream, delimiter="\t")
                 )
+    rna_tables: dict[str, list[dict[str, Any]]] = {}
+    rna_notes: list[str] = []
+    rna_figure_notes: dict[str, str] = {}
+    if summary.get("rna"):
+        from intergenic_regions.rna_reporting import (
+            RNA_FIGURE_NOTES,
+            RNA_NOTES,
+        )
+
+        rna_notes = [
+            *RNA_NOTES,
+            *[
+                f"DE model warning: {warning}"
+                for warning in (summary["rna"].get("de") or {}).get(
+                    "warnings", []
+                )
+            ],
+        ]
+        rna_figure_notes = RNA_FIGURE_NOTES
+        links.update(
+            {
+                "RNA evidence report": "rna/report.html",
+                "RNA candidate starts TSV": "rna/candidate_starts.tsv",
+                "RNA replicate calls TSV": "rna/replicate_calls.tsv",
+                "RNA coverage profiles TSV": "rna/coverage_profiles.tsv",
+                "RNA anchor audit TSV": "rna_anchor_audit.tsv",
+                "RNA motif distance profiles TSV": (
+                    "rna/motif_distance_profiles.tsv"
+                ),
+            }
+        )
+        for name, relative in (
+            ("RNA candidate start neighbourhoods", "rna/candidate_starts.tsv"),
+            ("RNA extraction anchor audit", "rna_anchor_audit.tsv"),
+            (
+                "Descriptive condition-specific start shifts",
+                "rna/start_shifts.tsv",
+            ),
+            ("RNA / DE gene-set audit", "expression/gene_set_audit.tsv"),
+        ):
+            candidate_path = directory / relative
+            if candidate_path.is_file():
+                with candidate_path.open(encoding="utf-8") as stream:
+                    rna_tables[name] = list(
+                        csv.DictReader(f=stream, delimiter="\t")
+                    )
+        if (directory / "expression" / "de_results.tsv").is_file():
+            links["Gene differential expression TSV"] = (
+                "expression/de_results.tsv"
+            )
     write_report(
         path=directory / "report.html",
         title="Intergenic regulatory sequence analysis",
@@ -806,6 +857,18 @@ def analysis_report(
                         "accessibility_overlap_fraction",
                         "reference_support_count",
                         "enhancer_status",
+                    )
+                    + (
+                        (
+                            "rna_condition",
+                            "rna_anchor_source",
+                            "rna_supporting_replicates",
+                            "rna_strand_evidence",
+                            "de_log2FoldChange",
+                            "de_padj",
+                        )
+                        if summary.get("rna")
+                        else ()
                     )
                 }
                 for row in candidates
@@ -829,10 +892,12 @@ def analysis_report(
             "Held-out model validation": metrics,
             "Held-out SHAP feature importance": shap_rows,
             **region_tables,
+            **rna_tables,
             **(extra_tables or {}),
         },
         images=images,
         links=links,
+        figure_notes=rna_figure_notes,
         notes=[
             "Motifs and ML use separate evidence: enrichment tests sequence "
             "presence; held-out ML measures positive-class resemblance.",
@@ -853,6 +918,7 @@ def analysis_report(
             "enhancer boundaries and no region-level FDR. Inspect "
             "availability "
             "and source-level validation at every scale.",
+            *rna_notes,
         ],
     )
 
@@ -1072,6 +1138,10 @@ def pipeline_workflow(
     scan_settings: dict[str, Any] | None = None,
     use_regions: bool = True,
     regional_settings: dict[str, Any] | None = None,
+    rna_starts: Sequence[dict[str, Any]] | None = None,
+    rna_condition: str | None = None,
+    rna_fallback: str = "annotation",
+    allow_provisional_rna: bool = False,
 ) -> dict[str, Any]:
     """Run gene-list extraction, leakage filtering, enrichment and optional AI.
 
@@ -1095,6 +1165,10 @@ def pipeline_workflow(
         scan_settings: Screen selection, substitution and profile limits.
         use_regions: Run multi-scale candidate search by default.
         regional_settings: Candidate window and position-profile settings.
+        rna_starts: Optional independently inferred coverage-start candidates.
+        rna_condition: One predeclared anchor condition for both gene classes.
+        rna_fallback: Annotation fallback or exclusion for unusable RNA.
+        allow_provisional_rna: Allow singleton candidates only when requested.
 
     Returns:
         Integrated workflow summary.
@@ -1113,18 +1187,43 @@ def pipeline_workflow(
     )
     with Genome(path=genome_path) as genome:
         index = GeneIndex(genes=genes, lengths=genome.lengths)
-        positive_regions = extract_regions(
-            index=index,
-            genome=genome,
-            identifiers=positives,
-            **(extraction_settings or {}),
-        )
-        negative_regions = extract_regions(
-            index=index,
-            genome=genome,
-            identifiers=negatives,
-            **(extraction_settings or {}),
-        )
+        anchor_audit: list[dict[str, Any]] = []
+        if rna_starts is not None:
+            from intergenic_regions.rna_starts import extract_rna_upstream
+
+            settings = dict(extraction_settings or {})
+            if (
+                not rna_condition
+                or settings.pop("direction", "upstream") != "upstream"
+            ):
+                raise ValueError(
+                    "RNA anchoring needs a condition and upstream direction"
+                )
+            all_regions, anchor_audit = extract_rna_upstream(
+                index=index,
+                genome=genome,
+                starts=rna_starts,
+                condition=rna_condition,
+                identifiers=[*positives, *negatives],
+                fallback=rna_fallback,
+                allow_provisional=allow_provisional_rna,
+                **settings,
+            )
+            positive_regions = all_regions[: len(positives)]
+            negative_regions = all_regions[len(positives) :]
+        else:
+            positive_regions = extract_regions(
+                index=index,
+                genome=genome,
+                identifiers=positives,
+                **(extraction_settings or {}),
+            )
+            negative_regions = extract_regions(
+                index=index,
+                genome=genome,
+                identifiers=negatives,
+                **(extraction_settings or {}),
+            )
     positive, negative, audit = sanitise_regions(
         positive=positive_regions, negative=negative_regions
     )
@@ -1136,6 +1235,19 @@ def pipeline_workflow(
     positive_records = {r.sequence_id: r.sequence for r in positive}
     negative_records = {r.sequence_id: r.sequence for r in negative}
     with output_bundle(path=output) as stage:
+        if rna_starts is not None:
+            write_tsv(
+                path=stage / "rna_input_starts.tsv",
+                rows=rna_starts,
+                fields=tuple(rna_starts[0])
+                if rna_starts
+                else ("gene_id", "condition", "status"),
+            )
+            write_tsv(
+                path=stage / "rna_anchor_audit.tsv",
+                rows=anchor_audit,
+                fields=tuple(anchor_audit[0]),
+            )
         write_regions(
             directory=stage / "positive_extraction", regions=positive_regions
         )
@@ -1232,6 +1344,24 @@ def pipeline_workflow(
                 }
             )
         candidate_rows = prioritise_candidates(rows=candidate_rows)
+        if anchor_audit:
+            anchors_by_id = {row["sequence_id"]: row for row in anchor_audit}
+            for row in candidate_rows:
+                anchor = anchors_by_id[row["sequence_id"]]
+                row.update(
+                    {
+                        f"rna_{name}": anchor[name]
+                        for name in (
+                            "condition",
+                            "anchor_source",
+                            "anchor_reason",
+                            "applied_anchor",
+                            "supporting_replicates",
+                            "strand_evidence",
+                            "tss_status",
+                        )
+                    }
+                )
         write_tsv(
             path=stage / "candidate_summary.tsv",
             rows=candidate_rows,
@@ -1299,6 +1429,9 @@ def pipeline_workflow(
             "scan": scan_settings or {},
             "use_regions": use_regions,
             "regional_search": regional_settings or {},
+            "rna_condition": rna_condition,
+            "rna_fallback": rna_fallback if rna_starts is not None else None,
+            "allow_provisional_rna": allow_provisional_rna,
         }
         write_json(
             path=stage / "manifest.json",

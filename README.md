@@ -1,7 +1,8 @@
 # Intergenic regions
 
 **Strand-aware intergenic extraction, motif enrichment, multi-scale regulatory
-region search, automatic ML with SHAP, genome motif screening and HTML reports.**
+region search, automatic ML with SHAP, RNA-seq integration, genome motif
+screening and HTML reports.**
 
 **Project creator, original author and maintainer:**
 [Peter Thorpe (@peterthorpe5)](https://github.com/peterthorpe5).
@@ -19,6 +20,8 @@ The version 1.1.0 SHAP and genome-screening upgrade continues this work under
 Peter Thorpe's scientific direction, with AI-assisted implementation and testing.
 Version 1.2.0 adds the multi-scale search proposed by Peter Thorpe to distinguish
 short motif patterns from larger, variable-length candidate regulatory regions.
+Version 1.3.0 adds Peter Thorpe's proposed RNA-seq/TransStart extension, with
+curated positive and negative gene lists as primary inputs and optional DE.
 
 This modern Python 3.11+ package replaces the script at master commit
 `c36293fc8f40117a8401a3e42aba255e172c914f` (4 September 2020).
@@ -54,7 +57,7 @@ conda activate intergenic_regions
 
 ```bash
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install --only-binary=:all: --editable '.[dev]'
+python -m pip install --only-binary=:all: --editable '.[analysis]'
 ```
 
 Then check the installation:
@@ -62,12 +65,10 @@ Then check the installation:
 ```bash
 python -m pip check
 python -m intergenic_regions --version
-python -m pytest --cov=intergenic_regions --cov-report=term-missing
-python -m ruff check .
-python -m ruff format --check .
-python -m mypy src
-python -m build
 ```
+
+For RNA-seq and full developer checks, use the separate NumPy 2 environment
+below. The original `environment.yml` continues to support sequence analysis.
 
 
 ### Other Python environments with binary wheels
@@ -84,6 +85,252 @@ The installed command is `intergenic-regions`. Extraction-only installation:
 plots, ML and the official SHAP package; `[motifs]` and `[ml]` remain separate
 internally. Extraction does not load ML libraries. This project is not assumed
 to be published on PyPI.
+
+### RNA-seq with Conda and pip
+
+```bash
+conda env create --file environment-rnaseq.yml
+conda activate intergenic_regions_rna
+python -m pip install --upgrade pip
+python -m pip install --only-binary=:all: --editable '.[de]'
+python -m pip check
+python -m intergenic_regions rna-pipeline --help
+```
+
+`[rna]` supplies alignment access, motifs, automatic ML and SHAP. `[de]` also
+installs PyDESeq2; it needs NumPy 2. Install `[rna]` if you use curated lists
+or imported DE and do not fit DE here. Conda supplies the compiled dependencies,
+including Numba/llvmlite, to avoid the earlier Mac source-build problem.
+This Conda/pip environment was tested on Linux; a Mac solve must be checked
+locally. Neither FASTQ mapping nor featureCounts is needed for coverage tracks
+with curated lists or an existing count matrix.
+
+For controlled mapping/counting, install the separate external tools:
+
+```bash
+conda env create --file environment-rna-tools.yml
+conda run -n intergenic_regions_rna_tools STAR --version
+conda run -n intergenic_regions_rna_tools samtools --version
+conda run -n intergenic_regions_rna_tools featureCounts -v
+```
+
+Run the Python commands from the RNA environment and give the tool executable
+paths using `--star-executable`, `--samtools-executable` and
+`--featurecounts-executable`, or expose the tool environment's `bin` directory
+on PATH. External tool builds depend on platform; on an unsupported Mac platform
+use a compatible Linux environment or supply pre-mapped BAMs/tracks instead.
+
+## RNA-seq interrogation with curated positive and negative genes
+
+**Your trimmed gene lists define the comparison. DE is optional and does not
+replace supplied labels.** Each file has one exact annotation gene ID per line.
+All non-selected genes still block extraction because the full annotation is
+always loaded. A condition is declared once and used for both classes.
+
+```bash
+python -m intergenic_regions rna-pipeline \
+  --genome genome.fasta \
+  --annotation genes.gff3 \
+  --samples samples.tsv \
+  --positive-genes curated_positive.txt \
+  --negative-genes curated_negative.txt \
+  --condition treatment \
+  --full-gap \
+  --kmer-lengths 4 6 8 \
+  --region-lengths 100 200 400 800 1600 \
+  --output-dir results/rna_curated \
+  --log-file rna_curated.log
+```
+
+Open `results/rna_curated/report.html`. The RNA layer searches each biological
+sample independently for a sustained spatial coverage rise near the annotated
+5-prime boundary, reports replicate agreement and then extracts DNA immediately
+upstream of usable candidate starts. **This is a candidate coverage edge, not
+a validated TSS or enhancer.** Standard RNA-seq can miss or displace transcript
+ends; validate starts using CAGE/RAMPAGE, 5-prime RACE or appropriate independent
+evidence. A rise along a gene is distinct from a temporal increase or DE between
+conditions.
+
+The same run automatically performs motif enrichment, sequence ML, official
+SHAP graphics and multi-scale region analysis. DE labels, coverage, fold changes
+and candidate-start positions are excluded from the sequence model's predictors
+to avoid circular learning. Scores measure positive-class sequence resemblance,
+not regulatory activity. `--no-ml`, `--no-shap` and `--no-regions` are explicit
+opt-outs. Add optional `--accessibility-bed peaks.bed` or functional evidence
+flags to strengthen evidence-aware triage, without making them requirements.
+
+The dashboard adds replicate coverage curves, a coverage heatmap, start-support
+bars, descriptive condition shifts, and motif-distance heatmaps relative to the
+**applied RNA or fallback anchor**. RNA anchors and annotation fallbacks remain
+separate in those profiles. Actual native motif sites are divided by eligible
+motif-centre positions in the returned sequences; missing flank bases are not
+padded as observations. DE adds a volcano plot and expression heatmap. Figures
+have interpretation notes and embedded PNG/vector PDF downloads.
+
+### Sample manifest
+
+Use a tab-separated file. BAM example (substitute your own paths):
+
+```tsv
+sample_id	condition	replicate_id	strandedness	layout	bam	batch
+ref1	reference	bio1	reverse	paired	bam/ref1.bam	A
+ref2	reference	bio2	reverse	paired	bam/ref2.bam	B
+tx1	treatment	bio1	reverse	paired	bam/tx1.bam	A
+tx2	treatment	bio2	reverse	paired	bam/tx2.bam	B
+```
+
+Paths resolve relative to the manifest, not the current shell directory. Supply
+exactly one source per row:
+
+| Input | Manifest fields | Requirements |
+| --- | --- | --- |
+| Alignments | `bam`, `layout=single/paired` | Coordinate-sorted, indexed BAM/CRAM; matching genome. CRAM needs the reference. Counting here uses BAM. |
+| Unstranded depth | `coverage`, `layout=coverage` | Non-negative, non-overlapping, sorted four-column bedGraph; `strandedness=unstranded`. |
+| Transcript-strand depth | `coverage_plus`, `coverage_minus`, `layout=coverage` | Both bedGraphs, in genomic coordinates and already assigned to transcript strands. |
+| Raw reads | `read1`, optional `read2`, `layout=single/paired` | Four-line FASTQ, plain/gzip; mapping explicitly enabled. |
+
+Declare `strandedness` as `unstranded`, `forward` (read 1 sense) or `reverse`
+(read 1 antisense), using the library protocol rather than guessing from DNA
+strand. Paired read 2 has the opposite convention. Transcript-strand bedGraphs
+are already assigned and are not inverted again. Omitted bedGraph bases mean
+zero depth; ensure the track covers the intended reference. An optional positive
+`size_factor` divides displayed depth; one means raw depth, not TPM/FPKM.
+Additional columns such as batch/subject become categorical DE covariates when
+explicitly requested.
+
+Each row represents one biological observation; merge technical libraries first.
+Sample IDs and `(condition, replicate_id)` must be unique. A subject measured
+in two conditions can share a replicate ID; declare a subject covariate for a
+paired DE design. DE needs at least two independent biological replicates per
+condition. By default candidate starts need two agreeing replicates; singletons
+stay provisional and only refine extraction with `--allow-provisional-rna`.
+Unstranded evidence remains explicitly ambiguous.
+
+### Add DE context while keeping curated labels
+
+Add **one** of these to the curated command, declaring the contrast:
+
+```bash
+--reference-condition reference --de-tsv external_de_results.tsv
+```
+
+```bash
+--reference-condition reference --counts-tsv raw_gene_counts.tsv
+```
+
+```bash
+--reference-condition reference --run-de
+```
+
+The last form counts annotated exon unions from the BAM samples using
+featureCounts, then fits PyDESeq2. Count matrices contain `gene_id` and exact
+sample-ID columns, with raw non-negative integer counts, never TPM/FPKM or
+scaled coverage. Imported results require `gene_id`, `baseMean`,
+`log2FoldChange` and `padj`; NA tests remain missing and imported adjusted
+p-values are preserved. The imported contrast is user-declared.
+`--de-covariates batch subject` requests explicit categorical nuisance terms;
+confounded or saturated designs fail defensively. Model warnings, tested-gene
+counts and unestimable tests are recorded. Curated gene lists are retained even
+when a supplied gene has a weak or oppositely directed DE result.
+
+### Generate lists from DE, then trim them if useful
+
+```bash
+python -m intergenic_regions rna-de \
+  --samples samples.tsv \
+  --counts-tsv raw_gene_counts.tsv \
+  --condition treatment \
+  --reference-condition reference \
+  --de-direction up \
+  --de-min-abs-log2-fold-change 1 \
+  --de-min-base-mean 10 \
+  --output-dir results/de
+```
+
+Inspect `report.html`, `de_results.tsv`, `gene_set_audit.tsv` and the positive
+and negative gene lists; trim the lists and pass them to `rna-pipeline` as above.
+Without either list, `rna-pipeline` generates DE sets using the same explicit
+thresholds, from `--counts-tsv`, `--de-tsv` or BAM exon counts. NA/low-expression
+genes never become negatives. Default controls are expressed genes with a small
+observed effect and a tested high adjusted p-value; this does not prove equivalent
+expression. Choose controls for the biological question, considering expression,
+coverage, gene family, sequence length/GC and mappability.
+
+### Controlled mapping and standalone start inspection
+
+```bash
+python -m intergenic_regions rna-map \
+  --genome genome.fasta --samples raw_samples.tsv \
+  --threads 4 --sort-ram 2000000000 --index-ram 8000000000 \
+  --output-dir results/mapped
+```
+
+`--dry-run` exports argument vectors without invoking tools or claiming mapped
+results. Mapping uses genomic, splice-aware two-pass STAR and samtools indexing.
+Raw read QC/adapter trimming is an upstream responsibility; the bounded FASTQ
+check is not full QC. Outputs include tool versions, logs, an index fingerprint
+and a relative-path `mapped_samples.tsv`. You can reuse a matching `--star-index`;
+external indexes without this package's fingerprint are labelled unverified.
+`rna-pipeline --map-reads` also controls mapping when raw inputs are supplied;
+add `--run-de --reference-condition reference` to fit DE alongside curated lists.
+
+```bash
+python -m intergenic_regions rna-starts \
+  --genome genome.fasta --annotation genes.gff3 --samples samples.tsv \
+  --genes genes_to_inspect.txt \
+  --condition treatment --reference-condition reference \
+  --output-dir results/starts
+```
+
+The initial defaults search up to 2,000 safe upstream bases and 300 bases into
+the first 5-prime exonic union, using a 20 bp block before and two sustained
+blocks after a candidate edge. Configure `--rna-window`, raw depth/rise/coverage
+thresholds, replicate agreement and profile binning before interpreting results.
+Hard caps bound genes, fetched alignments and exported profile rows. Omitted
+exons are audited as a gene-span search fallback; exonic counting refuses to
+substitute whole gene spans.
+
+**Boundary behaviour remains strict.** A candidate inside the target's annotated
+UTR/exon is reported but cannot authorise genic DNA extraction. Candidates beyond
+a blocker also cannot be used. Both cases explicitly fall back to annotation;
+`--rna-start-fallback exclude` requests exclusion instead. The first transcribed
+candidate base is excluded on both strands, and negative targets are
+reverse-complemented exactly once. Condition shifts are descriptive; their
+resolution/replicate ranges are not confidence intervals and receive no invented
+promoter-usage p-values. See [RNA methods](docs/RNASEQ.md) for the complete design.
+
+### Synthetic RNA demonstration
+
+```bash
+python examples/make_rna_demo.py --output-dir results/rna_demo_inputs
+python -m intergenic_regions rna-pipeline \
+  --genome results/rna_demo_inputs/genome.fasta \
+  --annotation results/rna_demo_inputs/genes.gff3 \
+  --samples results/rna_demo_inputs/samples.tsv \
+  --positive-genes results/rna_demo_inputs/positive_genes.txt \
+  --negative-genes results/rna_demo_inputs/negative_genes.txt \
+  --condition stimulated --reference-condition reference \
+  --counts-tsv results/rna_demo_inputs/gene_counts.tsv \
+  --motifs results/rna_demo_inputs/motifs.tsv \
+  --full-gap --scan-genome \
+  --output-dir results/rna_demo
+```
+
+This is planted synthetic data for testing and demonstration, not experimental
+biological evidence. Omit `--counts-tsv` for a curated run with no DE. Add
+`--write-reads` to the generator to produce small mapping fixtures; exported
+FASTQs and idealised bedGraphs are separate fixtures, not equivalent coverages.
+
+### Migration from TransStart and version 1.2
+
+Existing sequence-only commands are unchanged. RNA is an additional layer;
+it is not loaded by extraction-only runs. The new workflow extends Peter Thorpe's
+[TransStart](https://github.com/peterthorpe5/public_scripts/tree/master/TransStart)
+idea of detecting a coverage rise, while replacing shell depth walks with
+bounded alignment-block/track access, resolved exon ancestry, explicit library
+strands, independent replicate calls and auditable fallbacks. It does not inherit
+TransStart's CDS/file-order assumptions or treat correlated depth bases as
+independent significance tests. Neither tool establishes enhancer activity.
 
 ## Complete gene-list analysis
 
@@ -518,6 +765,9 @@ retained = [r for r in regions if r.status == "retained"]
 [methods and uncertainty](docs/METHODS.md), [output reference](docs/OUTPUTS.md).
 
 ## Tests and development
+
+Activate the RNA environment from `environment-rnaseq.yml` for the full suite;
+the developer extra includes optional RNA/DE dependencies.
 
 ```bash
 python -m pip install --editable '.[dev]'

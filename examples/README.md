@@ -1,5 +1,18 @@
 # Reproducible example
 
+## RNA-seq demonstration
+
+`make_rna_demo.py --output-dir results/rna_inputs` creates planted positive and
+negative genes, both strands, upstream blockers, two exons per target, three
+biological observations in two conditions, transcript-strand bedGraphs, raw
+count matrices, motif definitions and explicit start truth. `--count`,
+`--replicates`, `--flank-length` and `--seed` control bounded generation.
+`--write-reads` additionally produces small splice-aware FASTQ mapping fixtures
+with simulated sampling variation. Idealised tracks and exported FASTQs are
+separate fixtures; their depths are not asserted to be equivalent. Every fixture
+is synthetic. Use the end-to-end `rna-pipeline` commands in the main README,
+with curated lists first and optional count-based DE for context.
+
 Run make_demo.py with --output-dir, as shown in the root README. It produces
 both positive- and negative-strand target genes and explicit flanking blockers.
 Random sequence, planted G-box motifs and all assay/reference metadata are

@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.3.0
+
+- RNA-seq interrogation with curated positive and negative gene lists as primary
+  inputs; optional fitted/imported DE context never replaces their labels.
+- Bounded BAM/CRAM or bedGraph coverage with explicit library conventions,
+  spliced-block/paired-fragment depth and independent biological replicate calls.
+- Descriptive sustained coverage rises, replicate-supported neighbourhoods and
+  condition shifts, preserving uncertainty and the original safe DNA boundaries.
+- Optional raw FASTQ mapping via controlled two-pass STAR/samtools and raw exon
+  counts via featureCounts; explicit threads/RAM/time limits, logs and versions.
+- Optional PyDESeq2 raw-count DE with replicate/design validation, transparent
+  screening sets, missing-test handling and recorded model warnings.
+- Automatic existing sequence ML/SHAP and multi-scale analysis for RNA-defined
+  comparisons, excluding RNA quantities used to define labels from predictors.
+- RNA coverage/support/locus/motif-distance and optional DE graphics, offline
+  reports with interpretation notes and embedded PNG/vector PDF downloads.
+- Separate Conda/pip RNA environment, input schemas, TransStart migration notes,
+  reproducible synthetic fixtures and biological/API/external-tool regression tests.
+- Exactly stratified splits for singleton independent-gene groups, preventing
+  heuristic class loss during permutation validation in the Conda environment.
+
+RNA starts, promoter hypotheses and enhancer candidates remain unvalidated.
+Sequence-only workflows and the original strand-aware blocker behaviour remain
+compatible with version 1.2.
+
 ## 1.2.0
 
 Multi-scale regulatory search runs automatically with `pipeline` and `enrich`.

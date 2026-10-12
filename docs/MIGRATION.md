@@ -1,5 +1,25 @@
 # Migration from the 2020 script
 
+## Version 1.3 RNA-seq layer
+
+Existing extraction/motif/ML/SHAP/window/genome-scan commands remain compatible.
+Use `rna-pipeline` to add RNA evidence, with curated `--positive-genes` and
+`--negative-genes` as primary inputs. DE is optional; fitted/imported DE does
+not overwrite supplied labels. If lists are absent, explicit DE thresholds
+generate the comparison. Inspect/trim generated lists before reuse if preferred.
+
+The `[rna]`/`[de]` extras and `environment-rnaseq.yml` use NumPy 2 for PyDESeq2;
+the original sequence environment remains available. Developer tests include
+RNA/DE dependencies. STAR/samtools/featureCounts are separate optional executables,
+needed only for controlled mapping or automatic counts.
+
+Peter Thorpe's TransStart coverage-rise idea is retained scientifically, with
+modern hierarchy/strand/replicate handling and bounded access replacing old
+CDS/file-order assumptions and shell walks. RNA starts remain unvalidated,
+original annotations are never rewritten, and no candidate permits extraction
+inside the target or another gene. Annotation fallbacks/exclusions are audited.
+See [RNASEQ.md](RNASEQ.md) and the main README for schemas and examples.
+
 The starting point is master commit c36293fc8f40117a8401a3e42aba255e172c914f.
 Version 1.0.0 is a major interface change. The old modules and nose tests are
 replaced; retain an old checkout if a historical pipeline requires that API.

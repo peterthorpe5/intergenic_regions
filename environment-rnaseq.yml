@@ -1,0 +1,14 @@
+name: intergenic_regions_rna
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11
+  - pip
+  - numpy=2.2.6
+  - scipy>=1.14,<1.17
+  - matplotlib=3.10.3
+  - scikit-learn=1.6.1
+  - pandas=2.2.3
+  - numba=0.61.2
+  - llvmlite=0.44.0

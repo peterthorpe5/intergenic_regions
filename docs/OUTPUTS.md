@@ -55,6 +55,30 @@ is required. Data/model links remain relative to the companion folder.
 | regions/evidence.tsv / reference_overlaps.tsv | Evidence re-queried at each window's own genomic coordinates |
 | regions/candidate_evidence/ | Evidence re-queried at each union's own genomic coordinates |
 | regions/figures/region_*.png / *.pdf | Coverage, source validation, distance/density heatmaps, union spans and individual locus plots |
+| rna/report.html | Offline RNA dashboard with biological-replicate, anchor and interpretation tables |
+| rna/replicate_calls.tsv | Independent per-gene/sample coverage-edge calls, effects, neighbourhoods and missing statuses |
+| rna/candidate_starts.tsv | Per-gene/condition consensus, support counts, coordinate/range and unvalidated status |
+| rna/coverage_profiles.tsv | Bounded per-sample binned raw/divided depths, relative to the annotated 5-prime base |
+| rna/start_shifts.tsv | Descriptive condition/reference candidate shifts; promoter_usage_p_value stays empty |
+| rna_anchor_audit.tsv | Requested/applied anchor, RNA/fallback/exclusion source, reason and extraction status |
+| rna_input_starts.tsv | Starts used by the sequence workflow, retained for reproducibility |
+| rna/motif_distance_profiles.tsv | Actual native motif sites relative to applied anchors, eligible centres and separate anchor sources; no position-test p-value |
+| rna/figures/rna_*.png / *.pdf | Coverage/support/shift/locus/motif-distance and optional DE/expression figures |
+| expression/positive_genes.txt / negative_genes.txt | Exact selected curated labels, or explicit DE-screening sets when lists are absent |
+| expression/gene_set_audit.tsv | Label source and every DE screening inclusion/exclusion decision |
+| expression/de_results.tsv | Optional imported/fitted DE; filtered/untested values stay empty |
+| expression/gene_counts.tsv | Optional raw non-negative integer counts used for DE |
+| expression/summary.json | DE contrast/design, size factors, finite tested-gene count, warnings and status |
+| expression/counting/ | Optional SAF, featureCounts tables, logs, raw counts and commands/versions |
+| mapping/mapped_samples.tsv | Optional reusable manifest with relative BAM paths and original sample/design metadata |
+| mapping/mapping_plan.json | Optional argument vectors, resource bounds, tool versions and reference verification |
+| mapping/ | Optional STAR index/fingerprint, indexed BAMs and mapping logs; no retained raw-read symlinks |
+
+In `rna-starts`, RNA files are at the root. In `rna-de`, expression files and DE
+figures are at the root. In `rna-map`, mapping files are at the root; a dry run
+contains an explicit plan/status and no claimed alignments. The full RNA pipeline
+adds RNA/DE context columns to candidate TSVs without changing their evidence
+tiers or producing a joint activity probability.
 
 In standalone enrich output, motif tables/figures are at the root rather than
 under motifs/. Prediction-only output uses candidate_scores.tsv. Extraction
@@ -80,6 +104,16 @@ before offset and retained-length filtering.
 ML completed means internal held-out modelling finished; it does not indicate
 external biological validation. not_estimable/unavailable/disabled report why
 no model scores were produced. Existing result paths are never reused.
+
+RNA `replicate_supported_candidate` means the coverage edges agree under declared
+rules, not that the TSS is validated. `provisional_single_replicate`,
+`discordant_replicates`, `insufficient_replicate_support`, `not_detected`,
+`insufficient_search_space`, `unknown_strand` and boundary exclusions stay
+explicit. `unusable_rna_anchor` means fallback exclusion was requested.
+`annotation_fallback` means extraction uses the original annotated boundary;
+`rna_coverage_candidate` means the safe RNA anchor was applied. Start
+neighbourhoods are resolution/replicate ranges, not confidence intervals.
+DE `not_estimable` retains NA if no adjusted tests are finite; inspect warnings.
 
 Multi-scale `completed` means windows were searched; inspect the separate status
 for every model scale. `no_complete_windows` means every requested window was

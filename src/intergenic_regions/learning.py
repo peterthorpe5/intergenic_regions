@@ -177,7 +177,9 @@ def validation_splits(
     ):
         raise ValueError("Insufficient or malformed independent groups")
     x = np.zeros((len(labels), 1))
-    if groups is None:
+    if groups is None or len(set(groups)) == len(labels):
+        # Singleton groups impose no shared-observation constraint. Using the
+        # stratified splitter avoids heuristic class loss in grouped splitting.
         splitter = StratifiedKFold(
             n_splits=folds, shuffle=True, random_state=seed
         )
